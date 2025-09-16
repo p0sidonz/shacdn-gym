@@ -1,0 +1,8 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+Ye ek gym management saas repo hai isme root folder k andar ./database/ final_gym_schema.sql me sql strucure hai jo ki supabase wala hai ok?
+hum shadcn use and reactjs krrhe hai
+
