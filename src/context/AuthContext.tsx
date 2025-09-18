@@ -70,16 +70,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     }
 
-    // Listen for auth changes
+    // Listen for auth changes (KEY FIX: Make callback sync, defer async profile load)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {  // <- No 'async' here
         console.log('🔄 Auth state changed:', event, { session: !!session })
         
         setSession(session)
         setUser(session?.user ?? null)
         
         if (session?.user) {
-          await loadUserProfile(session.user.id)
+          // Defer profile load to avoid deadlock
+          setTimeout(async () => {
+            await loadUserProfile(session.user.id)
+          }, 0)
         } else {
           // Clear everything on logout
           setProfile(null)
@@ -95,7 +98,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => subscription.unsubscribe()
   }, [])
-
 
   const loadUserProfile = async (userId: string) => {
     try {
@@ -170,6 +172,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error) {
       setLoading(false)
       throw error
+    } finally {
+      // Added for robustness (listener will also handle, but this ensures quick reset)
+      setLoading(false)
     }
   }
 
@@ -208,6 +213,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error) {
       setLoading(false)
       throw error
+    } finally {
+      // Added for robustness
+      setLoading(false)
     }
   }
 
