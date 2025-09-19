@@ -74,6 +74,9 @@ export default function InquiriesManagement() {
   
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<InquiryStatus | 'all'>('all')
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'tomorrow' | 'this_week' | 'this_month' | 'last_month' | 'custom'>('all')
+  const [customStartDate, setCustomStartDate] = useState<string>('')
+  const [customEndDate, setCustomEndDate] = useState<string>('')
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null)
   const [showViewDialog, setShowViewDialog] = useState(false)
@@ -93,7 +96,76 @@ export default function InquiriesManagement() {
     notes: ''
   })
 
+  // Edit Inquiry Form State
+  const [editInquiryForm, setEditInquiryForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    age: '',
+    gender: '',
+    interest_area: '',
+    preferred_timing: '',
+    source: '',
+    notes: ''
+  })
+
   const [submitLoading, setSubmitLoading] = useState(false)
+
+  // Date helper functions
+  const isSameDay = (d1: Date, d2: Date) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate()
+  const startOfWeek = (d: Date) => {
+    const date = new Date(d)
+    const day = date.getDay() // 0 Sun - 6 Sat
+    const diff = (day === 0 ? -6 : 1) - day // start week on Monday
+    date.setDate(date.getDate() + diff)
+    date.setHours(0,0,0,0)
+    return date
+  }
+  const endOfWeek = (d: Date) => {
+    const start = startOfWeek(d)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+    end.setHours(23,59,59,999)
+    return end
+  }
+  const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)
+  const endOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23,59,59,999)
+
+  const withinDateFilter = (createdAt: string) => {
+    if (dateFilter === 'all') return true
+    const created = new Date(createdAt)
+    const now = new Date()
+    if (dateFilter === 'today') return isSameDay(created, now)
+    if (dateFilter === 'tomorrow') {
+      const tomorrow = new Date(now)
+      tomorrow.setDate(now.getDate() + 1)
+      return isSameDay(created, tomorrow)
+    }
+    if (dateFilter === 'this_week') {
+      const s = startOfWeek(now)
+      const e = endOfWeek(now)
+      return created >= s && created <= e
+    }
+    if (dateFilter === 'this_month') {
+      const s = startOfMonth(now)
+      const e = endOfMonth(now)
+      return created >= s && created <= e
+    }
+    if (dateFilter === 'last_month') {
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      const s = startOfMonth(lastMonth)
+      const e = endOfMonth(lastMonth)
+      return created >= s && created <= e
+    }
+    if (dateFilter === 'custom') {
+      if (!customStartDate || !customEndDate) return true
+      const s = new Date(customStartDate)
+      const e = new Date(customEndDate)
+      e.setHours(23,59,59,999)
+      return created >= s && created <= e
+    }
+    return true
+  }
 
   const filteredInquiries = inquiries.filter(inquiry => {
     const matchesSearch = 
@@ -101,9 +173,14 @@ export default function InquiriesManagement() {
       inquiry.phone.includes(searchTerm) ||
       inquiry.email?.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesStatus = statusFilter === 'all' || inquiry.status === statusFilter
+    // Exclude lost by default unless explicitly filtered to 'lost'
+    const baseStatusMatch = statusFilter === 'all' || inquiry.status === statusFilter
+    const excludeLostByDefault = statusFilter === 'all' ? inquiry.status !== 'lost' : true
+    const matchesStatus = baseStatusMatch && excludeLostByDefault
 
-    return matchesSearch && matchesStatus
+    const matchesDate = withinDateFilter(inquiry.created_at as unknown as string)
+
+    return matchesSearch && matchesStatus && matchesDate
   })
 
   const handleAddInquiry = async (e: React.FormEvent) => {
@@ -151,45 +228,32 @@ export default function InquiriesManagement() {
     }
   }
 
+  const handleEditInquiry = (inquiry: Inquiry) => {
+    setSelectedInquiry(inquiry)
+    setShowEditDialog(true)
+    setEditInquiryForm({
+      name: inquiry.name || '',
+      phone: inquiry.phone || '',
+      email: inquiry.email || '',
+      age: inquiry.age ? String(inquiry.age) : '',
+      gender: inquiry.gender || '',
+      interest_area: inquiry.interest_area || '',
+      preferred_timing: inquiry.preferred_timing || '',
+      source: inquiry.source || '',
+      notes: inquiry.notes || ''
+    })
+  }
+
   const handleUpdateInquiryStatus = async (inquiryId: string, status: InquiryStatus) => {
     try {
       const result = await updateInquiry(inquiryId, { status })
       if (result.error) {
         throw new Error(result.error)
       }
-      alert('Inquiry status updated successfully!')
     } catch (error) {
       console.error('Error updating inquiry status:', error)
       alert('Failed to update inquiry status.')
     }
-  }
-
-  const handleAssignInquiry = async (inquiryId: string, staffId: string) => {
-    try {
-      const result = await updateInquiry(inquiryId, { assigned_to: staffId })
-      if (result.error) {
-        throw new Error(result.error)
-      }
-      alert('Inquiry assigned successfully!')
-    } catch (error) {
-      console.error('Error assigning inquiry:', error)
-      alert('Failed to assign inquiry.')
-    }
-  }
-
-  const handleViewInquiry = (inquiry: Inquiry) => {
-    setSelectedInquiry(inquiry)
-    setShowViewDialog(true)
-  }
-
-  const handleEditInquiry = (inquiry: Inquiry) => {
-    setSelectedInquiry(inquiry)
-    setShowEditDialog(true)
-  }
-
-  const handleManageFollowups = (inquiry: Inquiry) => {
-    setSelectedInquiry(inquiry)
-    setShowFollowupDialog(true)
   }
 
   const getStatusColor = (status: InquiryStatus) => {
@@ -471,6 +535,29 @@ export default function InquiriesManagement() {
                   <SelectItem value="lost">Lost</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as any)}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Date Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dates</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="tomorrow">Tomorrow</SelectItem>
+                  <SelectItem value="this_week">This Week</SelectItem>
+                  <SelectItem value="this_month">This Month</SelectItem>
+                  <SelectItem value="last_month">Last Month</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {dateFilter === 'custom' && (
+                <div className="flex items-center space-x-2">
+                  <Input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} />
+                  <span className="text-muted-foreground">to</span>
+                  <Input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} />
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -711,7 +798,7 @@ export default function InquiriesManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Inquiry Dialog - Placeholder for now */}
+      {/* Edit Inquiry Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -721,12 +808,106 @@ export default function InquiriesManagement() {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Edit functionality coming soon!</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              This will allow you to update inquiry information, assign staff, and schedule follow-ups.
-            </p>
-          </div>
+          {selectedInquiry && (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault()
+                const payload: any = {
+                  name: editInquiryForm.name,
+                  phone: editInquiryForm.phone,
+                  email: editInquiryForm.email || null,
+                  age: editInquiryForm.age ? parseInt(editInquiryForm.age) : null,
+                  gender: editInquiryForm.gender || null,
+                  interest_area: editInquiryForm.interest_area || null,
+                  preferred_timing: editInquiryForm.preferred_timing || null,
+                  source: editInquiryForm.source,
+                  notes: editInquiryForm.notes || null
+                }
+                const result = await updateInquiry(selectedInquiry.id, payload)
+                if (result.error) {
+                  alert('Failed to update inquiry')
+                } else {
+                  setShowEditDialog(false)
+                }
+              }}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="e_name">Name *</Label>
+                  <Input id="e_name" value={editInquiryForm.name} onChange={(e) => setEditInquiryForm(prev => ({ ...prev, name: e.target.value }))} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="e_phone">Phone *</Label>
+                  <Input id="e_phone" value={editInquiryForm.phone} onChange={(e) => setEditInquiryForm(prev => ({ ...prev, phone: e.target.value }))} required />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="e_email">Email</Label>
+                  <Input id="e_email" type="email" value={editInquiryForm.email} onChange={(e) => setEditInquiryForm(prev => ({ ...prev, email: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="e_age">Age</Label>
+                  <Input id="e_age" type="number" value={editInquiryForm.age} onChange={(e) => setEditInquiryForm(prev => ({ ...prev, age: e.target.value }))} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="e_gender">Gender</Label>
+                  <Select value={editInquiryForm.gender} onValueChange={(value) => setEditInquiryForm(prev => ({ ...prev, gender: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="e_source">Source *</Label>
+                  <Select value={editInquiryForm.source} onValueChange={(value) => setEditInquiryForm(prev => ({ ...prev, source: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="walk_in">Walk-in</SelectItem>
+                      <SelectItem value="phone">Phone</SelectItem>
+                      <SelectItem value="website">Website</SelectItem>
+                      <SelectItem value="social_media">Social Media</SelectItem>
+                      <SelectItem value="referral">Referral</SelectItem>
+                      <SelectItem value="advertisement">Advertisement</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="e_interest_area">Interest Area</Label>
+                <Input id="e_interest_area" value={editInquiryForm.interest_area} onChange={(e) => setEditInquiryForm(prev => ({ ...prev, interest_area: e.target.value }))} />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="e_preferred_timing">Preferred Timing</Label>
+                <Input id="e_preferred_timing" value={editInquiryForm.preferred_timing} onChange={(e) => setEditInquiryForm(prev => ({ ...prev, preferred_timing: e.target.value }))} />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="e_notes">Notes</Label>
+                <Textarea id="e_notes" rows={3} value={editInquiryForm.notes} onChange={(e) => setEditInquiryForm(prev => ({ ...prev, notes: e.target.value }))} />
+              </div>
+
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+                <Button type="submit">Save Changes</Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 

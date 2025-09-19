@@ -8,13 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Edit, Save } from 'lucide-react'
 import { useMember } from '@/hooks/useMembers'
+import { MemberService } from '@/services/memberService'
 
 interface EditMemberDialogProps {
   member: any
   onMemberUpdated?: (member: any) => void
+  trigger?: React.ReactNode
 }
 
-export const EditMemberDialog: React.FC<EditMemberDialogProps> = ({ member, onMemberUpdated }) => {
+export const EditMemberDialog: React.FC<EditMemberDialogProps> = ({ member, onMemberUpdated, trigger }) => {
   const { updateMember } = useMember(member.id)
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -25,7 +27,16 @@ export const EditMemberDialog: React.FC<EditMemberDialogProps> = ({ member, onMe
     credit_balance: member.credit_balance || 0,
     security_deposit: member.security_deposit || 0,
     notes: member.notes || '',
-    tags: member.tags || []
+    tags: member.tags || [],
+    first_name: member.profile?.first_name || '',
+    last_name: member.profile?.last_name || '',
+    phone: member.profile?.phone || '',
+    date_of_birth: member.profile?.date_of_birth || '',
+    gender: member.profile?.gender || '',
+    address: member.profile?.address || '',
+    emergency_contact_name: member.profile?.emergency_contact_name || '',
+    emergency_contact_phone: member.profile?.emergency_contact_phone || '',
+    profile_image_url: member.profile?.profile_image_url || ''
   })
 
   const handleInputChange = (field: string, value: any) => {
@@ -40,9 +51,30 @@ export const EditMemberDialog: React.FC<EditMemberDialogProps> = ({ member, onMe
     setLoading(true)
     
     try {
-      console.log('Updating member:', formData)
-      const updatedMember = await updateMember(formData)
-      console.log('Member updated:', updatedMember)
+      const memberUpdates = {
+        status: formData.status,
+        source: formData.source,
+        credit_balance: formData.credit_balance,
+        security_deposit: formData.security_deposit,
+        notes: formData.notes,
+        tags: formData.tags
+      }
+      const profileUpdates = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        phone: formData.phone,
+        date_of_birth: formData.date_of_birth,
+        gender: formData.gender,
+        address: formData.address,
+        emergency_contact_name: formData.emergency_contact_name,
+        emergency_contact_phone: formData.emergency_contact_phone,
+        profile_image_url: formData.profile_image_url
+      }
+
+      const [updatedMember, updatedProfile] = await Promise.all([
+        updateMember(memberUpdates),
+        member.profile_id ? MemberService.updateProfile(member.profile_id, profileUpdates) : Promise.resolve(null)
+      ])
 
       if (onMemberUpdated) {
         onMemberUpdated(updatedMember)
@@ -60,10 +92,14 @@ export const EditMemberDialog: React.FC<EditMemberDialogProps> = ({ member, onMe
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Edit className="w-4 h-4 mr-2" />
-          Edit Member
-        </Button>
+        {trigger ? (
+          <>{trigger}</>
+        ) : (
+          <Button variant="outline" size="sm">
+            <Edit className="w-4 h-4 mr-2" />
+            Edit Member
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
@@ -73,7 +109,59 @@ export const EditMemberDialog: React.FC<EditMemberDialogProps> = ({ member, onMe
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-3">
+            <h3 className="font-medium">Profile Information</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="first_name">First Name</Label>
+                <Input id="first_name" value={formData.first_name} onChange={(e) => handleInputChange('first_name', e.target.value)} className="mobile-input" />
+              </div>
+              <div>
+                <Label htmlFor="last_name">Last Name</Label>
+                <Input id="last_name" value={formData.last_name} onChange={(e) => handleInputChange('last_name', e.target.value)} className="mobile-input" />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} className="mobile-input" />
+              </div>
+              <div>
+                <Label htmlFor="date_of_birth">Date of Birth</Label>
+                <Input id="date_of_birth" type="date" value={formData.date_of_birth || ''} onChange={(e) => handleInputChange('date_of_birth', e.target.value)} className="mobile-input" />
+              </div>
+              <div>
+                <Label htmlFor="gender">Gender</Label>
+                <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="profile_image_url">Profile Image URL</Label>
+                <Input id="profile_image_url" value={formData.profile_image_url} onChange={(e) => handleInputChange('profile_image_url', e.target.value)} className="mobile-input" />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="address">Address</Label>
+                <Textarea id="address" value={formData.address} onChange={(e) => handleInputChange('address', e.target.value)} className="mobile-input" />
+              </div>
+              <div>
+                <Label htmlFor="emergency_contact_name">Emergency Contact Name</Label>
+                <Input id="emergency_contact_name" value={formData.emergency_contact_name} onChange={(e) => handleInputChange('emergency_contact_name', e.target.value)} className="mobile-input" />
+              </div>
+              <div>
+                <Label htmlFor="emergency_contact_phone">Emergency Contact Phone</Label>
+                <Input id="emergency_contact_phone" value={formData.emergency_contact_phone} onChange={(e) => handleInputChange('emergency_contact_phone', e.target.value)} className="mobile-input" />
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="status">Status</Label>
@@ -119,6 +207,7 @@ export const EditMemberDialog: React.FC<EditMemberDialogProps> = ({ member, onMe
                 value={formData.credit_balance}
                 onChange={(e) => handleInputChange('credit_balance', parseFloat(e.target.value) || 0)}
                 placeholder="0.00"
+                className="mobile-input"
               />
             </div>
             
@@ -131,6 +220,7 @@ export const EditMemberDialog: React.FC<EditMemberDialogProps> = ({ member, onMe
                 value={formData.security_deposit}
                 onChange={(e) => handleInputChange('security_deposit', parseFloat(e.target.value) || 0)}
                 placeholder="0.00"
+                className="mobile-input"
               />
             </div>
           </div>
@@ -142,6 +232,7 @@ export const EditMemberDialog: React.FC<EditMemberDialogProps> = ({ member, onMe
               value={formData.notes}
               onChange={(e) => handleInputChange('notes', e.target.value)}
               placeholder="Additional notes about the member"
+              className="mobile-input"
             />
           </div>
 

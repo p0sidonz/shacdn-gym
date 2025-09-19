@@ -2,24 +2,30 @@ import { useState, useEffect, useCallback } from 'react'
 import { MemberService } from '@/services/memberService'
 import type { MemberFilters, MemberStats } from '@/services/memberService'
 import type { MemberWithDetails } from '@/types'
+import { useAuth } from '@/context/AuthContext'
 
 export const useMembers = (filters: MemberFilters = {}) => {
   const [members, setMembers] = useState<MemberWithDetails[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { gymId, user, profile } = useAuth()
 
   const loadMembers = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await MemberService.getMembers(filters)
+      const data = await MemberService.getMembers(filters, {
+        gymId: gymId || filters.gym_id,
+        actorUserId: user?.id ?? null,
+        actorProfileId: profile?.id ?? null,
+      })
       setMembers(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load members')
     } finally {
       setLoading(false)
     }
-  }, [filters.gym_id, filters.status, filters.search])
+  }, [filters.gym_id, filters.status, filters.search, gymId, user?.id, profile?.id])
 
   useEffect(() => {
     loadMembers()
@@ -31,7 +37,11 @@ export const useMembers = (filters: MemberFilters = {}) => {
 
   const addMember = async (memberData: any) => {
     try {
-      const newMember = await MemberService.createMember(memberData)
+      const newMember = await MemberService.createMember(memberData, {
+        gymId: gymId || filters.gym_id,
+        actorUserId: user?.id ?? null,
+        actorProfileId: profile?.id ?? null,
+      })
       setMembers(prev => [newMember, ...prev])
       return newMember
     } catch (err) {
@@ -42,7 +52,11 @@ export const useMembers = (filters: MemberFilters = {}) => {
 
   const updateMember = async (id: string, updates: any) => {
     try {
-      const updatedMember = await MemberService.updateMember(id, updates)
+      const updatedMember = await MemberService.updateMember(id, updates, {
+        gymId: gymId || filters.gym_id,
+        actorUserId: user?.id ?? null,
+        actorProfileId: profile?.id ?? null,
+      })
       setMembers(prev => prev.map(member => 
         member.id === id ? { ...member, ...updatedMember } : member
       ))
@@ -55,7 +69,11 @@ export const useMembers = (filters: MemberFilters = {}) => {
 
   const deleteMember = async (id: string) => {
     try {
-      await MemberService.deleteMember(id)
+      await MemberService.deleteMember(id, {
+        gymId: gymId || filters.gym_id,
+        actorUserId: user?.id ?? null,
+        actorProfileId: profile?.id ?? null,
+      })
       setMembers(prev => prev.filter(member => member.id !== id))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete member')
@@ -65,33 +83,45 @@ export const useMembers = (filters: MemberFilters = {}) => {
 
   const assignTrainer = useCallback(async (memberId: string, trainerId: string) => {
     try {
-      await MemberService.updateMember(memberId, { assigned_trainer_id: trainerId })
+      await MemberService.updateMember(memberId, { assigned_trainer_id: trainerId }, {
+        gymId: gymId || filters.gym_id,
+        actorUserId: user?.id ?? null,
+        actorProfileId: profile?.id ?? null,
+      })
       await refreshMembers()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to assign trainer')
       throw err
     }
-  }, [refreshMembers])
+  }, [refreshMembers, gymId, user?.id, profile?.id, filters.gym_id])
 
   const assignNutritionist = useCallback(async (memberId: string, nutritionistId: string) => {
     try {
-      await MemberService.updateMember(memberId, { assigned_nutritionist_id: nutritionistId })
+      await MemberService.updateMember(memberId, { assigned_nutritionist_id: nutritionistId }, {
+        gymId: gymId || filters.gym_id,
+        actorUserId: user?.id ?? null,
+        actorProfileId: profile?.id ?? null,
+      })
       await refreshMembers()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to assign nutritionist')
       throw err
     }
-  }, [refreshMembers])
+  }, [refreshMembers, gymId, user?.id, profile?.id, filters.gym_id])
 
   const updateMemberStatus = useCallback(async (memberId: string, status: string) => {
     try {
-      await MemberService.updateMember(memberId, { status })
+      await MemberService.updateMember(memberId, { status }, {
+        gymId: gymId || filters.gym_id,
+        actorUserId: user?.id ?? null,
+        actorProfileId: profile?.id ?? null,
+      })
       await refreshMembers()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update member status')
       throw err
     }
-  }, [refreshMembers])
+  }, [refreshMembers, gymId, user?.id, profile?.id, filters.gym_id])
 
   return {
     members,
@@ -116,7 +146,11 @@ export const useMemberStats = (gymId: string) => {
     setLoading(true)
     setError(null)
     try {
-      const data = await MemberService.getMemberStats(gymId)
+      const data = await MemberService.getMemberStats(gymId, {
+        gymId,
+        actorUserId: null,
+        actorProfileId: null,
+      })
       setStats(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load member stats')
@@ -147,6 +181,7 @@ export const useMember = (id: string) => {
   const [member, setMember] = useState<MemberWithDetails | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { gymId, user, profile } = useAuth()
 
   const loadMember = async () => {
     if (!id) return
@@ -154,7 +189,11 @@ export const useMember = (id: string) => {
     setLoading(true)
     setError(null)
     try {
-      const data = await MemberService.getMemberById(id)
+      const data = await MemberService.getMemberById(id, {
+        gymId: gymId || null,
+        actorUserId: user?.id ?? null,
+        actorProfileId: profile?.id ?? null,
+      })
       setMember(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load member')
@@ -175,7 +214,11 @@ export const useMember = (id: string) => {
     if (!member) return
     
     try {
-      const updatedMember = await MemberService.updateMember(member.id, updates)
+      const updatedMember = await MemberService.updateMember(member.id, updates, {
+        gymId: gymId || member.gym_id,
+        actorUserId: user?.id ?? null,
+        actorProfileId: profile?.id ?? null,
+      })
       setMember(updatedMember)
       return updatedMember
     } catch (err) {

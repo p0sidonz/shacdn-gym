@@ -352,36 +352,31 @@ export const DetailedMemberProfile: React.FC<DetailedMemberProfileProps> = ({
 
 
   return (
-    <div className="min-h-screen bg-gray-50 max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-background max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="bg-white border-b px-4 lg:px-6 py-4">
+      <div className="bg-card border-b border-border px-4 lg:px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 lg:space-x-4">
             {onBack && (
-              <Button variant="ghost" size="sm" onClick={onBack}>
+              <Button variant="ghost" size="sm" onClick={onBack} className="shrink-0">
                 <ArrowLeft className="w-4 h-4 lg:mr-2" />
                 <span className="hidden lg:inline">Back</span>
               </Button>
             )}
-            <h1 className="text-lg lg:text-2xl font-bold text-gray-900">Member Profile</h1>
+            <h1 className="text-lg lg:text-2xl font-bold text-foreground truncate">Member Profile</h1>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-500 hidden sm:inline">Emperor Fitness</span>
-            <Button variant="ghost" size="sm">
-              <Settings className="w-4 h-4" />
-            </Button>
-          </div>
+          
         </div>
       </div>
 
       <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-80px)] overflow-hidden">
         {/* Left Sidebar - Member Info */}
-        <div className="w-full lg:w-80 lg:flex-shrink-0 bg-white border-r-0 lg:border-r border-gray-200 p-4 lg:p-6 overflow-y-auto">
+        <div className="w-full lg:w-80 lg:flex-shrink-0 bg-card border-r-0 lg:border-r border-border p-4 lg:p-6 overflow-y-auto lg:max-h-[calc(100vh-80px)]">
           {/* Profile Picture */}
           <div className="flex flex-col lg:flex-col items-center lg:items-center mb-6">
             <div className="flex flex-row lg:flex-col items-center lg:items-center space-x-4 lg:space-x-0 w-full">
               <div className="relative flex-shrink-0">
-                <div className="w-16 h-16 lg:w-24 lg:h-24 bg-gray-200 rounded-full flex items-center justify-center mb-0 lg:mb-2">
+                <div className="w-16 h-16 lg:w-24 lg:h-24 bg-muted rounded-full flex items-center justify-center mb-0 lg:mb-2">
                   {currentMember.profile?.profile_image_url ? (
                     <img 
                       src={currentMember.profile.profile_image_url} 
@@ -389,22 +384,31 @@ export const DetailedMemberProfile: React.FC<DetailedMemberProfileProps> = ({
                       className="w-16 h-16 lg:w-24 lg:h-24 rounded-full object-cover"
                     />
                   ) : (
-                    <User className="w-8 h-8 lg:w-12 lg:h-12 text-gray-400" />
+                    <User className="w-8 h-8 lg:w-12 lg:h-12 text-muted-foreground" />
                   )}
                 </div>
-                <Button size="sm" className="absolute -bottom-1 -right-1 h-6 w-6 lg:h-8 lg:w-8 rounded-full p-0">
-                  <Edit className="w-3 h-3 lg:w-4 lg:h-4" />
-                </Button>
+                <EditMemberDialog
+                  member={currentMember}
+                  onMemberUpdated={() => {
+                    refreshMember()
+                    if (onMemberUpdated) onMemberUpdated()
+                  }}
+                  trigger={
+                    <Button size="sm" className="absolute -bottom-1 -right-1 h-6 w-6 lg:h-8 lg:w-8 rounded-full p-0" aria-label="Edit member">
+                      <Edit className="w-3 h-3 lg:w-4 lg:h-4" />
+                    </Button>
+                  }
+                />
               </div>
               
               {/* Member Name and Contact */}
               <div className="text-left lg:text-center flex-1 lg:flex-none">
-                <h2 className="text-base lg:text-lg font-semibold text-gray-900">
+                <h2 className="text-base lg:text-lg font-semibold text-foreground">
                   {currentMember.profile ? `${currentMember.profile.first_name} ${currentMember.profile.last_name}` : 'N/A'}
                 </h2>
                 <div className="flex items-center justify-start lg:justify-center space-x-2 mt-1">
-                  <Phone className="w-3 h-3 lg:w-4 lg:h-4 text-gray-400" />
-                  <span className="text-xs lg:text-sm text-gray-600">{currentMember.profile?.phone || 'N/A'}</span>
+                  <Phone className="w-3 h-3 lg:w-4 lg:h-4 text-muted-foreground" />
+                  <span className="text-xs lg:text-sm text-muted-foreground">{currentMember.profile?.phone || 'N/A'}</span>
                   <MessageSquare className="w-3 h-3 lg:w-4 lg:h-4 text-green-500" />
                 </div>
                 <div className="mt-2 lg:hidden">
@@ -416,25 +420,25 @@ export const DetailedMemberProfile: React.FC<DetailedMemberProfileProps> = ({
 
           {/* Member Details */}
           <div className="space-y-4">
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <div className="text-xs lg:text-sm text-gray-500 mb-1">Member ID</div>
-              <div className="font-medium text-sm lg:text-base">{currentMember.member_id}</div>
+            <div className="bg-muted/50 p-3 rounded-lg">
+              <div className="text-xs lg:text-sm text-muted-foreground mb-1">Member ID</div>
+              <div className="font-medium text-sm lg:text-base text-foreground">{currentMember.member_id}</div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-3 lg:space-y-2 lg:block">
               <div className="flex items-center space-x-2">
-                <Mail className="w-3 h-3 lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
-                <span className="text-xs lg:text-sm truncate">{currentMember.profile?.email || 'N/A'}</span>
+                <Mail className="w-3 h-3 lg:w-4 lg:h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs lg:text-sm truncate text-foreground">{currentMember.profile?.email || 'N/A'}</span>
               </div>
               
               <div className="flex items-center space-x-2">
-                <User className="w-3 h-3 lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
-                <span className="text-xs lg:text-sm">{currentMember.profile?.gender || 'N/A'}</span>
+                <User className="w-3 h-3 lg:w-4 lg:h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs lg:text-sm text-foreground">{currentMember.profile?.gender || 'N/A'}</span>
               </div>
               
               <div className="flex items-center space-x-2">
-                <Calendar className="w-3 h-3 lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
-                <span className="text-xs lg:text-sm">
+                <Calendar className="w-3 h-3 lg:w-4 lg:h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs lg:text-sm text-foreground">
                   {currentMember.profile?.date_of_birth ? 
                     formatDate(new Date(currentMember.profile.date_of_birth)) : 'N/A'
                   }
@@ -442,17 +446,17 @@ export const DetailedMemberProfile: React.FC<DetailedMemberProfileProps> = ({
               </div>
               
               <div className="flex items-center space-x-2">
-                <Heart className="w-3 h-3 lg:w-4 lg:h-4 text-gray-400 flex-shrink-0" />
-                <span className="text-xs lg:text-sm">{currentMember.profile?.blood_group || 'N/A'}</span>
+                <Heart className="w-3 h-3 lg:w-4 lg:h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-xs lg:text-sm text-foreground">{currentMember.profile?.blood_group || 'N/A'}</span>
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="mt-6 lg:mt-8 space-y-2 lg:space-y-3">
-            <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 lg:gap-0 lg:space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2 lg:gap-0 lg:space-y-3">
               <Button 
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs lg:text-sm"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs lg:text-sm h-9 lg:h-10"
                 size="sm"
                 onClick={() => {
                   console.log('Add Membership button clicked, opening dialog...')
@@ -460,38 +464,38 @@ export const DetailedMemberProfile: React.FC<DetailedMemberProfileProps> = ({
                 }}
               >
                 <Plus className="w-3 h-3 lg:w-4 lg:h-4 lg:mr-2" />
-                <span className="hidden lg:inline">Add New</span> Membership
+                <span className="hidden sm:inline lg:inline">Add New</span> Membership
               </Button>
               <Button 
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs lg:text-sm"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs lg:text-sm h-9 lg:h-10"
                 size="sm"
                 onClick={() => setIsAddPTOpen(true)}
               >
                 <Plus className="w-3 h-3 lg:w-4 lg:h-4 lg:mr-2" />
-                <span className="hidden lg:inline">Add New</span> PT
+                <span className="hidden sm:inline lg:inline">Add New</span> PT
               </Button>
               <Button 
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs lg:text-sm"
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white text-xs lg:text-sm h-9 lg:h-10"
                 size="sm"
                 onClick={() => setIsAddFollowUpOpen(true)}
               >
                 <Plus className="w-3 h-3 lg:w-4 lg:h-4 lg:mr-2" />
-                <span className="hidden lg:inline">Add</span> Follow Up
+                <span className="hidden sm:inline lg:inline">Add</span> Follow Up
               </Button>
               <Button 
-                className="w-full bg-green-500 hover:bg-green-600 text-white text-xs lg:text-sm"
+                className="w-full bg-green-500 hover:bg-green-600 text-white text-xs lg:text-sm h-9 lg:h-10"
                 size="sm"
                 onClick={() => setIsAddPaymentOpen(true)}
               >
                 <DollarSign className="w-3 h-3 lg:w-4 lg:h-4 lg:mr-2" />
-                <span className="hidden lg:inline">Add</span> Payment
+                <span className="hidden sm:inline lg:inline">Add</span> Payment
               </Button>
             </div>
           </div>
         </div>
 
         {/* Right Panel - Tabs */}
-        <div className="flex-1 lg:min-w-0 bg-white overflow-hidden">
+        <div className="flex-1 lg:min-w-0 bg-card overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
             <div className="relative border-b">
               <TabsList className="flex w-full overflow-x-auto scrollbar-hide space-x-1 p-1">
@@ -650,23 +654,23 @@ export const DetailedMemberProfile: React.FC<DetailedMemberProfileProps> = ({
             {selectedMembershipForPaymentPlan && (
               <div className="space-y-6">
                 {/* Membership Info */}
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-muted/50 p-4 rounded-lg">
                   <h3 className="font-medium mb-2">Membership Details</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-600">Package:</span>
+                      <span className="text-muted-foreground">Package:</span>
                       <span className="ml-2 font-medium">{selectedMembershipForPaymentPlan.package?.name || 'N/A'}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Total Amount:</span>
+                      <span className="text-muted-foreground">Total Amount:</span>
                       <span className="ml-2 font-medium">₹{selectedMembershipForPaymentPlan.original_amount || 0}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Paid Amount:</span>
+                      <span className="text-muted-foreground">Paid Amount:</span>
                       <span className="ml-2 font-medium">₹{selectedMembershipForPaymentPlan.amount_paid || 0}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Remaining:</span>
+                      <span className="text-muted-foreground">Remaining:</span>
                       <span className="ml-2 font-medium text-red-600">
                         ₹{(selectedMembershipForPaymentPlan.original_amount || 0) - (selectedMembershipForPaymentPlan.amount_paid || 0)}
                       </span>
@@ -745,7 +749,7 @@ export const DetailedMemberProfile: React.FC<DetailedMemberProfileProps> = ({
                         <div className="space-y-2 max-h-40 overflow-y-auto">
                           {Array.from({ length: paymentPlanForm.number_of_installments }, (_, index) => (
                             <div key={index} className="flex items-center space-x-2">
-                              <span className="text-sm text-gray-600 w-20">
+                              <span className="text-sm text-muted-foreground w-20">
                                 Installment {index + 1}:
                               </span>
                               <input
@@ -758,7 +762,7 @@ export const DetailedMemberProfile: React.FC<DetailedMemberProfileProps> = ({
                             </div>
                           ))}
                         </div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           Set specific dates for each installment. Dates should be in chronological order.
                         </p>
                       </div>
@@ -793,13 +797,13 @@ export const DetailedMemberProfile: React.FC<DetailedMemberProfileProps> = ({
                               <span>Per Installment:</span>
                               <span>₹{installmentAmount.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-xs text-gray-600">
+                            <div className="flex justify-between text-xs text-muted-foreground">
                               <span>Frequency:</span>
                               <span>{paymentPlanForm.custom_dates ? 'Custom Dates' : paymentPlanForm.installment_frequency}</span>
                             </div>
                             {paymentPlanForm.custom_dates && paymentPlanForm.installment_dates.length > 0 && (
                               <div className="mt-2">
-                                <div className="text-xs text-gray-600 mb-1">Installment Schedule:</div>
+                                <div className="text-xs text-muted-foreground mb-1">Installment Schedule:</div>
                                 <div className="space-y-1">
                                   {paymentPlanForm.installment_dates.map((date, index) => (
                                     <div key={index} className="flex justify-between text-xs">
@@ -849,7 +853,7 @@ export const DetailedMemberProfile: React.FC<DetailedMemberProfileProps> = ({
             </DialogDescription>
           </DialogHeader>
           <div className="p-4">
-            <p className="text-center text-gray-500">
+            <p className="text-center text-muted-foreground">
               PT session management is handled in the PT tab. 
               Please use the "Add New PT" button in the PT tab to schedule sessions.
             </p>
@@ -875,7 +879,7 @@ export const DetailedMemberProfile: React.FC<DetailedMemberProfileProps> = ({
             </DialogDescription>
           </DialogHeader>
           <div className="p-4">
-            <p className="text-center text-gray-500">
+            <p className="text-center text-muted-foreground">
               Follow-up management is handled in the FollowUp tab. 
               Please use the "Add New Follow Up" button in the FollowUp tab to schedule interactions.
             </p>

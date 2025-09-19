@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
 import type { Inquiry, InquiryStatus, Staff, UserProfile, InquiryFollowup, FollowupType, FollowupMethod, FollowupStatus } from '@/types'
+import { ActivityLogService } from '@/services/activityLogService'
 
 interface StaffWithProfile extends Staff {
   profile: {
@@ -43,7 +44,7 @@ interface CreateFollowupData {
 }
 
 export const useInquiries = () => {
-  const { gymId } = useAuth()
+  const { gymId, user, profile } = useAuth()
   const [inquiries, setInquiries] = useState<Inquiry[]>([])
   const [staff, setStaff] = useState<StaffWithProfile[]>([])
   const [loading, setLoading] = useState(false)
@@ -163,6 +164,21 @@ export const useInquiries = () => {
       if (error) throw error
 
       await fetchInquiries() // Refresh inquiries list
+
+      // Log creation
+      try {
+        await ActivityLogService.createLog({
+          gym_id: gymId,
+          resource_type: 'inquiry',
+          resource_id: data.id,
+          action: 'create',
+          description: `Inquiry created: ${data.name}`,
+          after_data: data,
+        })
+      } catch (e) {
+        console.warn('Activity log (create) failed', e)
+      }
+
       return { data, error: null }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create inquiry'
@@ -178,6 +194,8 @@ export const useInquiries = () => {
       setLoading(true)
       setError(null)
 
+      const before = inquiries.find(i => i.id === inquiryId) || null
+
       const { data, error } = await supabase
         .from('inquiries')
         .update(updates)
@@ -188,6 +206,22 @@ export const useInquiries = () => {
       if (error) throw error
 
       await fetchInquiries() // Refresh inquiries list
+
+      // Log update/status change
+      try {
+        await ActivityLogService.createLog({
+          gym_id: gymId as string,
+          resource_type: 'inquiry',
+          resource_id: inquiryId,
+          action: updates.status ? 'status_change' : 'update',
+          description: updates.status ? `Inquiry status changed to ${updates.status}` : 'Inquiry updated',
+          before_data: before,
+          after_data: data,
+        })
+      } catch (e) {
+        console.warn('Activity log (update) failed', e)
+      }
+
       return { data, error: null }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update inquiry'
@@ -203,6 +237,13 @@ export const useInquiries = () => {
       setLoading(true)
       setError(null)
 
+      // before snapshot
+      const { data: before } = await supabase
+        .from('inquiries')
+        .select('*')
+        .eq('id', inquiryId)
+        .single()
+
       const { error } = await supabase
         .from('inquiries')
         .delete()
@@ -211,6 +252,24 @@ export const useInquiries = () => {
       if (error) throw error
 
       await fetchInquiries() // Refresh inquiries list
+
+      // audit log
+      try {
+        await ActivityLogService.createLog({
+          gym_id: gymId as string,
+          actor_user_id: user?.id ?? null,
+          actor_profile_id: profile?.id ?? null,
+          resource_type: 'inquiry',
+          resource_id: inquiryId,
+          action: 'delete',
+          description: 'Inquiry deleted',
+          before_data: before,
+          after_data: null,
+        })
+      } catch (e) {
+        console.warn('Activity log (delete inquiry) failed', e)
+      }
+
       return { data: null, error: null }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete inquiry'
@@ -293,6 +352,22 @@ export const useInquiries = () => {
 
       if (error) throw error
 
+      // audit log
+      try {
+        await ActivityLogService.createLog({
+          gym_id: gymId as string,
+          actor_user_id: user?.id ?? null,
+          actor_profile_id: profile?.id ?? null,
+          resource_type: 'inquiry_followups',
+          resource_id: data.id,
+          action: 'create',
+          description: 'Follow-up created',
+          after_data: data,
+        })
+      } catch (e) {
+        console.warn('Activity log (create follow-up) failed', e)
+      }
+
       return { data, error: null }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create follow-up'
@@ -308,6 +383,13 @@ export const useInquiries = () => {
       setLoading(true)
       setError(null)
 
+      // before snapshot
+      const { data: before } = await supabase
+        .from('inquiry_followups')
+        .select('*')
+        .eq('id', followupId)
+        .single()
+
       const { data, error } = await supabase
         .from('inquiry_followups')
         .update(updates)
@@ -316,6 +398,23 @@ export const useInquiries = () => {
         .single()
 
       if (error) throw error
+
+      // audit log
+      try {
+        await ActivityLogService.createLog({
+          gym_id: gymId as string,
+          actor_user_id: user?.id ?? null,
+          actor_profile_id: profile?.id ?? null,
+          resource_type: 'inquiry_followups',
+          resource_id: followupId,
+          action: updates?.status ? 'status_change' : 'update',
+          description: updates?.status ? `Follow-up status changed to ${updates.status}` : 'Follow-up updated',
+          before_data: before,
+          after_data: data,
+        })
+      } catch (e) {
+        console.warn('Activity log (update follow-up) failed', e)
+      }
 
       return { data, error: null }
     } catch (error) {

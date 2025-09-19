@@ -52,6 +52,7 @@ export function AppSidebar() {
     { href: '/reports', label: 'Reports', icon: TrendingUp },
     // { href: '/settings', label: 'Settings', icon: Settings },
     { href: '/permissions', label: 'Permissions', icon: Shield },
+    { href: '/audit/logs', label: 'Activity Logs', icon: Activity },
   ]
 
   const managerNavItems = [

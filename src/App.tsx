@@ -31,8 +31,7 @@ import Reports from '@/pages/reports/Reports'
 import Settings from '@/pages/settings/Settings'
 import MembershipPackages from '@/pages/packages/MembershipPackages'
 import PermissionManager from '@/components/permissions/PermissionManager'
-
-
+import ActivityLogs from '@/pages/audit/ActivityLogs'
 
 // Create a query client
 const queryClient = new QueryClient({
@@ -238,6 +237,14 @@ const AppRoutes: React.FC = () => {
           element={
             <ProtectedRoute allowedRoles={['gym_owner', 'manager']}>
               <Reports />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="audit/logs"
+          element={
+            <ProtectedRoute allowedRoles={['gym_owner', 'manager']}>
+              <ActivityLogs />
             </ProtectedRoute>
           }
         />

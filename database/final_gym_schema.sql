@@ -29,6 +29,16 @@ CREATE TYPE staff_status AS ENUM ('active', 'inactive', 'terminated', 'on_leave'
 CREATE TYPE expense_category AS ENUM ('equipment', 'maintenance', 'utilities', 'staff', 'marketing', 'supplies', 'rent', 'insurance', 'taxes', 'supplements', 'other');
 CREATE TYPE discount_type AS ENUM ('percentage', 'fixed_amount', 'buy_one_get_one', 'family_discount');
 
+-- Audit actions
+DO $$ BEGIN
+  CREATE TYPE activity_action AS ENUM (
+    'create', 'update', 'delete', 'status_change', 'assign', 'unassign',
+    'login', 'logout', 'payment', 'refund'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
 -- ============================================================================
 -- CORE TABLES
 -- ============================================================================
@@ -580,7 +590,71 @@ CREATE TABLE credit_transactions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- ============================================================================
+-- ACTIVITY LOGS (AUDIT TRAIL)
+-- Tracks who changed what and when across the app
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS activity_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  gym_id UUID NOT NULL,
+  actor_user_id UUID,                 -- who performed the action (auth.uid)
+  actor_profile_id UUID,              -- optional link to profiles.id
+  resource_type TEXT NOT NULL,        -- e.g. 'inquiry', 'member', 'membership', 'payment', 'trainer', 'finance'
+  resource_id TEXT NOT NULL,          -- UUID or composite key as string
+  action activity_action NOT NULL,
+  description TEXT,
+  before_data JSONB,
+  after_data JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
+-- Helpful indexes
+CREATE INDEX IF NOT EXISTS idx_activity_logs_gym_id ON activity_logs (gym_id);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_actor_user ON activity_logs (actor_user_id);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_resource ON activity_logs (resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs (created_at DESC);
+
+-- Enable Row Level Security
+ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+-- Select policy: gym owner sees all logs for their gym; staff sees only logs for their gym OR restricted to self if desired
+DO $$ BEGIN
+  CREATE POLICY activity_logs_select_policy ON activity_logs
+  FOR SELECT
+  USING (
+    -- gym owner
+    EXISTS (
+      SELECT 1 FROM gyms g WHERE g.id = activity_logs.gym_id AND g.owner_id = auth.uid()
+    )
+    OR
+    -- active staff of the same gym
+    EXISTS (
+      SELECT 1 FROM staff s WHERE s.gym_id = activity_logs.gym_id AND s.user_id = auth.uid() AND s.status = 'active'
+    )
+  );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Insert policy: only authenticated users associated with the gym can insert
+DO $$ BEGIN
+  CREATE POLICY activity_logs_insert_policy ON activity_logs
+  FOR INSERT
+  WITH CHECK (
+    -- gym owner check
+    EXISTS (SELECT 1 FROM gyms g WHERE g.id = gym_id AND g.owner_id = auth.uid())
+    OR
+    -- staff of the gym
+    EXISTS (SELECT 1 FROM staff s WHERE s.gym_id = gym_id AND s.user_id = auth.uid() AND s.status = 'active')
+  );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Optionally forbid updates/deletes to preserve immutability
+DO $$ BEGIN
+  CREATE POLICY activity_logs_block_update ON activity_logs FOR UPDATE USING (false);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  CREATE POLICY activity_logs_block_delete ON activity_logs FOR DELETE USING (false);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Attendance
 CREATE TABLE attendance (
@@ -1099,3 +1173,60 @@ CREATE TRIGGER trigger_update_discount_usage
     AFTER INSERT ON payments
     FOR EACH ROW
     EXECUTE FUNCTION update_discount_usage();
+
+-- ============================================================================
+-- Safe trigger attachment (run after all tables are created)
+-- Creates triggers only if the target table exists; ignores duplicates
+-- ============================================================================
+DO $$
+DECLARE
+    v_sql text;
+BEGIN
+    -- inquiries
+    IF to_regclass('public.inquiries') IS NOT NULL THEN
+        BEGIN
+            v_sql := 'CREATE TRIGGER trg_inquiries_audit AFTER INSERT OR UPDATE OR DELETE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION public.log_activity_generic()';
+            EXECUTE v_sql;
+        EXCEPTION WHEN duplicate_object THEN NULL; END;
+    END IF;
+
+    -- members
+    IF to_regclass('public.members') IS NOT NULL THEN
+        BEGIN
+            v_sql := 'CREATE TRIGGER trg_members_audit AFTER INSERT OR UPDATE OR DELETE ON public.members FOR EACH ROW EXECUTE FUNCTION public.log_activity_generic()';
+            EXECUTE v_sql;
+        EXCEPTION WHEN duplicate_object THEN NULL; END;
+    END IF;
+
+    -- memberships
+    IF to_regclass('public.memberships') IS NOT NULL THEN
+        BEGIN
+            v_sql := 'CREATE TRIGGER trg_memberships_audit AFTER INSERT OR UPDATE OR DELETE ON public.memberships FOR EACH ROW EXECUTE FUNCTION public.log_activity_generic()';
+            EXECUTE v_sql;
+        EXCEPTION WHEN duplicate_object THEN NULL; END;
+    END IF;
+
+    -- payments
+    IF to_regclass('public.payments') IS NOT NULL THEN
+        BEGIN
+            v_sql := 'CREATE TRIGGER trg_payments_audit AFTER INSERT OR UPDATE OR DELETE ON public.payments FOR EACH ROW EXECUTE FUNCTION public.log_activity_generic()';
+            EXECUTE v_sql;
+        EXCEPTION WHEN duplicate_object THEN NULL; END;
+    END IF;
+
+    -- profiles
+    IF to_regclass('public.profiles') IS NOT NULL THEN
+        BEGIN
+            v_sql := 'CREATE TRIGGER trg_profiles_audit AFTER INSERT OR UPDATE OR DELETE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.log_activity_profiles()';
+            EXECUTE v_sql;
+        EXCEPTION WHEN duplicate_object THEN NULL; END;
+    END IF;
+
+    -- inquiry_followups
+    IF to_regclass('public.inquiry_followups') IS NOT NULL THEN
+        BEGIN
+            v_sql := 'CREATE TRIGGER trg_inquiry_followups_audit AFTER INSERT OR UPDATE OR DELETE ON public.inquiry_followups FOR EACH ROW EXECUTE FUNCTION public.log_activity_inquiry_followups()';
+            EXECUTE v_sql;
+        EXCEPTION WHEN duplicate_object THEN NULL; END;
+    END IF;
+END $$;

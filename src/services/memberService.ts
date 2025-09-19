@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type { MemberWithDetails } from '@/types'
+import { ActivityLogService } from '@/services/activityLogService'
 
 export interface MemberFilters {
   gym_id?: string
@@ -7,6 +8,12 @@ export interface MemberFilters {
   search?: string
   page?: number
   limit?: number
+}
+
+export interface AuditContext {
+  gymId?: string
+  actorUserId?: string | null
+  actorProfileId?: string | null
 }
 
 export interface MemberStats {
@@ -270,7 +277,7 @@ export class MemberService {
   }
 
   // Create new member
-  static async createMember(memberData: any): Promise<any> {
+  static async createMember(memberData: any, ctx?: AuditContext): Promise<any> {
     try {
       console.log('MemberService.createMember called with:', memberData)
       const { data, error } = await supabase
@@ -284,6 +291,22 @@ export class MemberService {
         throw new Error(`Member creation failed: ${error.message}`)
       }
       console.log('Member created successfully:', data)
+
+      // Audit log (create)
+      try {
+        await ActivityLogService.createLog({
+          gym_id: ctx?.gymId || data.gym_id,
+          actor_user_id: ctx?.actorUserId ?? null,
+          actor_profile_id: ctx?.actorProfileId ?? null,
+          resource_type: 'member',
+          resource_id: data.id,
+          action: 'create',
+          description: `Member created: ${data.id}`,
+          after_data: data,
+        })
+      } catch (e) {
+        console.warn('audit(createMember) failed', e)
+      }
       return data
     } catch (error) {
       console.error('Error creating member:', error)
@@ -292,8 +315,15 @@ export class MemberService {
   }
 
   // Update member
-  static async updateMember(id: string, updates: Partial<any>): Promise<any> {
+  static async updateMember(id: string, updates: Partial<any>, ctx?: AuditContext): Promise<any> {
     try {
+      // Fetch before snapshot
+      const { data: before } = await supabase
+        .from('members')
+        .select('*')
+        .eq('id', id)
+        .single()
+
       const { data, error } = await supabase
         .from('members')
         .update(updates)
@@ -302,6 +332,23 @@ export class MemberService {
         .single()
 
       if (error) throw error
+
+      // Audit log (update)
+      try {
+        await ActivityLogService.createLog({
+          gym_id: ctx?.gymId || data.gym_id,
+          actor_user_id: ctx?.actorUserId ?? null,
+          actor_profile_id: ctx?.actorProfileId ?? null,
+          resource_type: 'member',
+          resource_id: id,
+          action: updates?.status ? 'status_change' : 'update',
+          description: updates?.status ? `Member status changed to ${updates.status}` : 'Member updated',
+          before_data: before,
+          after_data: data,
+        })
+      } catch (e) {
+        console.warn('audit(updateMember) failed', e)
+      }
       return data
     } catch (error) {
       console.error('Error updating member:', error)
@@ -309,15 +356,95 @@ export class MemberService {
     }
   }
 
-  // Delete member
-  static async deleteMember(id: string): Promise<void> {
+  // Update profile (first_name, last_name, phone, date_of_birth, gender, address, emergency contacts, image, etc.)
+  static async updateProfile(profileId: string, updates: Partial<any>, ctx?: AuditContext): Promise<any> {
     try {
+      // Ensure we never allow email updates here (guard)
+      const { email, ...safeUpdates } = updates as any
+
+      // Resolve gym via members.profile_id if not provided
+      let resolvedGymId = ctx?.gymId
+      if (!resolvedGymId) {
+        const { data: memberOfProfile } = await supabase
+          .from('members')
+          .select('gym_id, id')
+          .eq('profile_id', profileId)
+          .single()
+        resolvedGymId = memberOfProfile?.gym_id
+      }
+
+      // Before snapshot
+      const { data: before } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .single()
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(safeUpdates)
+        .eq('id', profileId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Audit log (update profile)
+      try {
+        await ActivityLogService.createLog({
+          gym_id: resolvedGymId as string,
+          actor_user_id: ctx?.actorUserId ?? null,
+          actor_profile_id: ctx?.actorProfileId ?? null,
+          resource_type: 'profile',
+          resource_id: profileId,
+          action: 'update',
+          description: 'Profile updated',
+          before_data: before,
+          after_data: data,
+        })
+      } catch (e) {
+        console.warn('audit(updateProfile) failed', e)
+      }
+      return data
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      throw error
+    }
+  }
+
+  // Delete member
+  static async deleteMember(id: string, ctx?: AuditContext): Promise<void> {
+    try {
+      // Before snapshot
+      const { data: before } = await supabase
+        .from('members')
+        .select('*')
+        .eq('id', id)
+        .single()
+
       const { error } = await supabase
         .from('members')
         .delete()
         .eq('id', id)
 
       if (error) throw error
+
+      // Audit log (delete)
+      try {
+        await ActivityLogService.createLog({
+          gym_id: ctx?.gymId || before?.gym_id,
+          actor_user_id: ctx?.actorUserId ?? null,
+          actor_profile_id: ctx?.actorProfileId ?? null,
+          resource_type: 'member',
+          resource_id: id,
+          action: 'delete',
+          description: 'Member deleted',
+          before_data: before,
+          after_data: null,
+        })
+      } catch (e) {
+        console.warn('audit(deleteMember) failed', e)
+      }
     } catch (error) {
       console.error('Error deleting member:', error)
       throw error
