@@ -183,7 +183,7 @@ export const MembershipManagement: React.FC<MembershipManagementProps> = ({
                       </Button>
 
                       {/* Downgrade */}
-                      <Button
+                      {/* <Button
                         size="sm"
                         variant="outline"
                         disabled={!canPerformAction(membership, 'downgrade')}
@@ -192,10 +192,10 @@ export const MembershipManagement: React.FC<MembershipManagementProps> = ({
                       >
                         <ArrowDown className="w-4 h-4 mr-1" />
                         Downgrade
-                      </Button>
+                      </Button> */}
 
                       {/* Transfer */}
-                      <Button
+                      {/* <Button
                         size="sm"
                         variant="outline"
                         disabled={!canPerformAction(membership, 'transfer')}
@@ -204,7 +204,7 @@ export const MembershipManagement: React.FC<MembershipManagementProps> = ({
                       >
                         <ArrowRight className="w-4 h-4 mr-1" />
                         Transfer
-                      </Button>
+                      </Button> */}
 
                       {/* Freeze/Unfreeze */}
                       {membership.status === 'frozen' ? (
