@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
-import type { Inquiry, InquiryStatus, Staff, UserProfile, InquiryFollowup, FollowupType, FollowupMethod, FollowupStatus } from '@/types'
+import type { Inquiry, InquiryStatus, InquiryFollowup, FollowupType, FollowupMethod } from '@/types'
 import { ActivityLogService } from '@/services/activityLogService'
 
-interface StaffWithProfile extends Staff {
+interface StaffWithProfile {
+  id: string
+  user_id: string
+  role: string
   profile: {
     first_name: string
     last_name: string
@@ -280,7 +283,7 @@ export const useInquiries = () => {
     }
   }
 
-  const convertToMember = async (inquiryId: string, memberData: any) => {
+  const convertToMember = async (inquiryId: string) => {
     try {
       setLoading(true)
       setError(null)

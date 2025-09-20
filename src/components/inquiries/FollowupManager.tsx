@@ -35,11 +35,21 @@ import {
 import { formatDate, formatCurrency } from '@/lib/utils'
 import type { Inquiry, InquiryFollowup, FollowupType, FollowupMethod, FollowupStatus, Staff } from '@/types'
 
+interface StaffWithProfile {
+  id: string
+  user_id: string
+  role: string
+  profile: {
+    first_name: string
+    last_name: string
+  }
+}
+
 interface FollowupManagerProps {
   inquiry: Inquiry
-  staff: Staff[]
-  onCreateFollowup: (data: any) => Promise<void>
-  onUpdateFollowup: (id: string, data: any) => Promise<void>
+  staff: StaffWithProfile[]
+  onCreateFollowup: (data: any) => Promise<{ data: any; error: null } | { data: null; error: string }>
+  onUpdateFollowup: (id: string, data: any) => Promise<{ data: any; error: null } | { data: null; error: string }>
   onGetFollowupHistory: (inquiryId: string) => Promise<{ data: InquiryFollowup[] }>
 }
 
@@ -98,7 +108,7 @@ export default function FollowupManager({
       const nextFollowupDateTime = addFollowupForm.next_followup_date ? 
         new Date(`${addFollowupForm.next_followup_date}T${addFollowupForm.next_followup_time}`) : null
 
-      await onCreateFollowup({
+      const result = await onCreateFollowup({
         inquiry_id: inquiry.id,
         followup_type: addFollowupForm.followup_type,
         followup_date: followupDateTime.toISOString(),
@@ -106,6 +116,10 @@ export default function FollowupManager({
         notes: addFollowupForm.notes,
         next_followup_date: nextFollowupDateTime?.toISOString()
       })
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
 
       // Reset form
       setAddFollowupForm({
@@ -133,11 +147,15 @@ export default function FollowupManager({
     if (!selectedFollowup) return
 
     try {
-      await onUpdateFollowup(selectedFollowup.id, {
+      const result = await onUpdateFollowup(selectedFollowup.id, {
         status: updateFollowupForm.status,
         outcome: updateFollowupForm.outcome,
         notes: updateFollowupForm.notes
       })
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
 
       setShowUpdateDialog(false)
       setSelectedFollowup(null)

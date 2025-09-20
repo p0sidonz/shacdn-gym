@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,7 +13,6 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Dialog,
   DialogContent,
@@ -34,7 +33,6 @@ import {
   Search, 
   Filter, 
   Edit, 
-  Trash2, 
   Eye,
   Phone,
   Mail,
@@ -43,11 +41,10 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  XCircle,
   Loader2,
   Plus
 } from 'lucide-react'
-import { formatDate, formatCurrency } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
 import { useInquiries } from '@/hooks/useInquiries'
 import FollowupManager from '@/components/inquiries/FollowupManager'
 import type { Inquiry, InquiryStatus } from '@/types'
@@ -59,7 +56,6 @@ export default function InquiriesManagement() {
     loading, 
     createInquiry, 
     updateInquiry, 
-    deleteInquiry,
     getInquiryStats,
     createFollowup,
     updateFollowup,
@@ -253,6 +249,30 @@ export default function InquiriesManagement() {
     } catch (error) {
       console.error('Error updating inquiry status:', error)
       alert('Failed to update inquiry status.')
+    }
+  }
+
+  const handleViewInquiry = (inquiry: Inquiry) => {
+    setSelectedInquiry(inquiry)
+    setShowViewDialog(true)
+  }
+
+  const handleManageFollowups = (inquiry: Inquiry) => {
+    setSelectedInquiry(inquiry)
+    setShowFollowupDialog(true)
+  }
+
+  const handleAssignStaff = async (inquiryId: string, staffId: string) => {
+    try {
+      const assignedTo = staffId === 'unassign' ? null : staffId
+      const result = await updateInquiry(inquiryId, { assigned_to: assignedTo })
+      if (result.error) {
+        throw new Error(result.error)
+      }
+      alert(staffId === 'unassign' ? 'Staff unassigned successfully!' : 'Staff assigned successfully!')
+    } catch (error) {
+      console.error('Error assigning staff:', error)
+      alert('Failed to assign staff.')
     }
   }
 
@@ -625,13 +645,29 @@ export default function InquiriesManagement() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {inquiry.assigned_staff ? (
-                      <div className="text-sm">
-                        {getStaffName(inquiry.assigned_staff.user_id)}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">Unassigned</span>
-                    )}
+                    <div className="flex items-center space-x-2">
+                      {inquiry.assigned_staff ? (
+                        <div className="text-sm">
+                          {getStaffName(inquiry.assigned_staff.user_id)}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Unassigned</span>
+                      )}
+                      <Select onValueChange={(value) => handleAssignStaff(inquiry.id, value)}>
+                        <SelectTrigger className="w-32">
+                          <UserPlus className="h-3 w-3 mr-1" />
+                          <span>Assign</span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassign">Unassign</SelectItem>
+                          {staff.map((staffMember) => (
+                            <SelectItem key={staffMember.id} value={staffMember.id}>
+                              {staffMember.profile.first_name} {staffMember.profile.last_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </TableCell>
                   <TableCell>
                     {inquiry.follow_up_date ? (
