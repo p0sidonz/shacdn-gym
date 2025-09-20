@@ -48,6 +48,15 @@ export class MemberService {
             emergency_contact_phone,
             profile_image_url
           ),
+          assigned_trainer:staff!assigned_trainer_id(
+            id,
+            employee_id,
+            profile:profiles!profile_id(
+              first_name,
+              last_name,
+              phone
+            )
+          ),
           memberships!memberships_member_id_fkey(
             id,
             status,
@@ -62,7 +71,9 @@ export class MemberService {
               price,
               duration_days,
               package_type,
-              is_trial
+              is_trial,
+              pt_sessions_included,
+              features
             ),
             payment_plans(
               id,
@@ -103,13 +114,20 @@ export class MemberService {
       
       // Transform data to match UI expectations
       const transformedData = (data || []).map(member => {
-        // Find active membership
-        const activeMembership = member.memberships?.find((m: any) => m.status === 'active')
+        // Find active or trial membership (both should be considered "current")
+        const activeMembership = member.memberships?.find((m: any) => 
+          m.status === 'active' || m.status === 'trial'
+        )
         
         return {
           ...member,
           current_membership: activeMembership,
-          membership_package: activeMembership?.membership_packages
+          membership_package: activeMembership?.membership_packages,
+          // assigned_trainer is already properly joined from the query
+          attendance_stats: {
+            attendance_percentage: 0, // Will be calculated separately if needed
+            last_visit: null
+          }
         }
       })
       
@@ -172,7 +190,9 @@ export class MemberService {
       if (error) throw error
       
       // Transform data to match UI expectations
-      const activeMembership = data.memberships?.find((m: any) => m.status === 'active')
+      const activeMembership = data.memberships?.find((m: any) => 
+        m.status === 'active' || m.status === 'trial'
+      )
       
       return {
         ...data,
@@ -473,7 +493,7 @@ export class MemberService {
           )
         `)
         .eq('member_id', id)
-        .eq('status', 'active')
+        .in('status', ['active', 'trial'])
         .single()
 
       // Get assigned trainer
@@ -484,7 +504,7 @@ export class MemberService {
           .select(`
             id,
             employee_id,
-            profiles!user_id(
+            profiles!profile_id(
               first_name,
               last_name,
               phone
@@ -503,7 +523,7 @@ export class MemberService {
           .select(`
             id,
             employee_id,
-            profiles!user_id(
+            profiles!profile_id(
               first_name,
               last_name,
               phone

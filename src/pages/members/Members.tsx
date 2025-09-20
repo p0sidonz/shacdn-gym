@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { 
   Search, 
   Filter, 
@@ -20,7 +21,8 @@ import {
   TrendingUp,
   QrCode,
   Grid3X3,
-  List
+  List,
+  Info
 } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useMembers, useMemberStats } from '@/hooks/useMembers'
@@ -194,7 +196,11 @@ const Members = () => {
             Filter
           </Button>
           <AddMemberDialog onMemberAdded={() => {
-            refreshMembers()
+            console.log('Member added, refreshing members list...')
+            // Force refresh by clearing and reloading
+            setTimeout(() => {
+              refreshMembers()
+            }, 1000)
           }} />
         </div>
       </div>
@@ -403,21 +409,107 @@ const Members = () => {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">
-                              {member.membership_package?.name || 'No Package'}
-                            </div>
+                            {member.membership_package ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="font-medium cursor-help flex items-center gap-2">
+                                      <div className="flex items-center gap-1">
+                                        {member.membership_package.name}
+                                        <Info className="w-3 h-3 text-gray-400" />
+                                      </div>
+                                      {/* PT Package Badge */}
+                                      {(member.membership_package.package_type === 'personal_training' || member.membership_package.pt_sessions_included > 0) && (
+                                        <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
+                                          PT
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs">
+                                    <div className="space-y-2">
+                                      <div className="font-semibold">{member.membership_package.name}</div>
+                                      {member.membership_package.description && (
+                                        <div className="text-sm text-gray-300">
+                                          {member.membership_package.description}
+                                        </div>
+                                      )}
+                                      <div className="text-xs space-y-1">
+                                        <div>Type: {member.membership_package.package_type}</div>
+                                        <div>Price: ₹{member.membership_package.price}</div>
+                                        <div>Duration: {member.membership_package.duration_days} days</div>
+                                        {member.membership_package.pt_sessions_included > 0 && (
+                                          <div>PT Sessions: {member.membership_package.pt_sessions_included}</div>
+                                        )}
+                                        {(member.membership_package.package_type === 'personal_training' || member.membership_package.pt_sessions_included > 0) && member.assigned_trainer && (
+                                          <div className="flex items-center gap-1 text-blue-300">
+                                            <User className="w-3 h-3" />
+                                            Trainer: {member.assigned_trainer.profile ? 
+                                              `${member.assigned_trainer.profile.first_name} ${member.assigned_trainer.profile.last_name}` : 
+                                              member.assigned_trainer.employee_id
+                                            }
+                                          </div>
+                                        )}
+                                        {member.membership_package.features && member.membership_package.features.length > 0 && (
+                                          <div>
+                                            Features: {member.membership_package.features.join(', ')}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <div className="font-medium text-gray-400">No Package</div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
                           {member.assigned_trainer ? (
-                            <div className="text-sm">
-                              {member.assigned_trainer.profile ? 
-                                `${member.assigned_trainer.profile.first_name} ${member.assigned_trainer.profile.last_name}` : 
-                                member.assigned_trainer.employee_id
-                              }
-                            </div>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-sm font-medium cursor-help flex items-center gap-1">
+                                    <User className="w-3 h-3 text-blue-600" />
+                                    {member.assigned_trainer.profile ? 
+                                      `${member.assigned_trainer.profile.first_name} ${member.assigned_trainer.profile.last_name}` : 
+                                      member.assigned_trainer.employee_id
+                                    }
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="space-y-1">
+                                    <div className="font-semibold">Assigned Trainer</div>
+                                    <div className="text-sm">
+                                      {member.assigned_trainer.profile ? 
+                                        `${member.assigned_trainer.profile.first_name} ${member.assigned_trainer.profile.last_name}` : 
+                                        member.assigned_trainer.employee_id
+                                      }
+                                    </div>
+                                    {member.assigned_trainer.profile?.phone && (
+                                      <div className="text-xs text-gray-300">
+                                        📞 {member.assigned_trainer.profile.phone}
+                                      </div>
+                                    )}
+                                    {member.membership_package?.pt_sessions_included && member.membership_package.pt_sessions_included > 0 && (
+                                      <div className="text-xs text-purple-300">
+                                        PT Sessions: {member.membership_package.pt_sessions_included}
+                                      </div>
+                                    )}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           ) : (
-                            <span className="text-gray-400 text-sm">Not assigned</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-400 text-sm">Not assigned</span>
+                              {(member.membership_package?.package_type === 'personal_training' || (member.membership_package?.pt_sessions_included && member.membership_package.pt_sessions_included > 0)) && (
+                                <Badge variant="outline" className="text-xs text-orange-600 border-orange-200">
+                                  Needs Trainer
+                                </Badge>
+                              )}
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>
@@ -532,23 +624,110 @@ const Members = () => {
                         {/* Package Info */}
                         <div>
                           <p className="text-sm font-medium text-gray-700">Package</p>
-                          <p className="text-sm text-gray-600">
-                            {member.membership_package?.name || 'No Package'}
-                          </p>
+                          {member.membership_package ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-sm text-gray-600 cursor-help flex items-center gap-2">
+                                    <div className="flex items-center gap-1">
+                                      {member.membership_package.name}
+                                      <Info className="w-3 h-3 text-gray-400" />
+                                    </div>
+                                    {/* PT Package Badge */}
+                                    {(member.membership_package.package_type === 'personal_training' || member.membership_package.pt_sessions_included > 0) && (
+                                      <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 text-xs">
+                                        PT
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="space-y-2">
+                                    <div className="font-semibold">{member.membership_package.name}</div>
+                                    {member.membership_package.description && (
+                                      <div className="text-sm text-gray-300">
+                                        {member.membership_package.description}
+                                      </div>
+                                    )}
+                                    <div className="text-xs space-y-1">
+                                      <div>Type: {member.membership_package.package_type}</div>
+                                      <div>Price: ₹{member.membership_package.price}</div>
+                                      <div>Duration: {member.membership_package.duration_days} days</div>
+                                      {member.membership_package.pt_sessions_included > 0 && (
+                                        <div>PT Sessions: {member.membership_package.pt_sessions_included}</div>
+                                      )}
+                                      {(member.membership_package.package_type === 'personal_training' || member.membership_package.pt_sessions_included > 0) && member.assigned_trainer && (
+                                        <div className="flex items-center gap-1 text-blue-300">
+                                          <User className="w-3 h-3" />
+                                          Trainer: {member.assigned_trainer.profile ? 
+                                            `${member.assigned_trainer.profile.first_name} ${member.assigned_trainer.profile.last_name}` : 
+                                            member.assigned_trainer.employee_id
+                                          }
+                                        </div>
+                                      )}
+                                      {member.membership_package.features && member.membership_package.features.length > 0 && (
+                                        <div>
+                                          Features: {member.membership_package.features.join(', ')}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <p className="text-sm text-gray-400">No Package</p>
+                          )}
                         </div>
 
                         {/* Trainer Info */}
                         <div>
                           <p className="text-sm font-medium text-gray-700">Trainer</p>
-                          <p className="text-sm text-gray-600">
-                            {member.assigned_trainer ? (
-                              member.assigned_trainer.profile ? 
-                                `${member.assigned_trainer.profile.first_name} ${member.assigned_trainer.profile.last_name}` : 
-                                member.assigned_trainer.employee_id
-                            ) : (
-                              'Not assigned'
-                            )}
-                          </p>
+                          {member.assigned_trainer ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-sm text-gray-600 cursor-help flex items-center gap-1">
+                                    <User className="w-3 h-3 text-blue-600" />
+                                    {member.assigned_trainer.profile ? 
+                                      `${member.assigned_trainer.profile.first_name} ${member.assigned_trainer.profile.last_name}` : 
+                                      member.assigned_trainer.employee_id
+                                    }
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="space-y-1">
+                                    <div className="font-semibold">Assigned Trainer</div>
+                                    <div className="text-sm">
+                                      {member.assigned_trainer.profile ? 
+                                        `${member.assigned_trainer.profile.first_name} ${member.assigned_trainer.profile.last_name}` : 
+                                        member.assigned_trainer.employee_id
+                                      }
+                                    </div>
+                                    {member.assigned_trainer.profile?.phone && (
+                                      <div className="text-xs text-gray-300">
+                                        📞 {member.assigned_trainer.profile.phone}
+                                      </div>
+                                    )}
+                                    {member.membership_package?.pt_sessions_included && member.membership_package.pt_sessions_included > 0 && (
+                                      <div className="text-xs text-purple-300">
+                                        PT Sessions: {member.membership_package.pt_sessions_included}
+                                      </div>
+                                    )}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-gray-400">Not assigned</span>
+                              {(member.membership_package?.package_type === 'personal_training' || (member.membership_package?.pt_sessions_included && member.membership_package.pt_sessions_included > 0)) && (
+                                <Badge variant="outline" className="text-xs text-orange-600 border-orange-200">
+                                  Needs Trainer
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {/* Payment Info */}

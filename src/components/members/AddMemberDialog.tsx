@@ -81,7 +81,7 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
     credit_balance: 0,
     
     // Payment Information
-    payment_type: 'full', // 'full', 'partial', 'none'
+    payment_type: 'none', // 'full', 'partial', 'none'
     down_payment: 0,
     first_installment_date: new Date().toISOString().split('T')[0]
   })
@@ -118,10 +118,7 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
       return
     }
     
-    if (formData.payment_type === 'partial' && formData.down_payment <= 0) {
-      alert('Please enter the amount being paid today')
-      return
-    }
+    // Payment validation removed since payment is handled later
     
     setLoading(true)
     
@@ -363,15 +360,7 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
             }
             
             // Show success message
-            let paymentMessage = ''
-            if (formData.payment_type === 'full') {
-              paymentMessage = ' with full payment'
-            } else if (formData.payment_type === 'partial') {
-              paymentMessage = ` with ₹${formData.down_payment} paid today`
-            } else {
-              paymentMessage = ' - payment pending'
-            }
-            alert(`Membership added successfully for ${newMember.profile?.first_name} ${newMember.profile?.last_name}${paymentMessage}`)
+            alert(`Member added successfully! ${newMember.profile?.first_name} ${newMember.profile?.last_name} can now be found in the members list. Payment can be added later from their profile.`)
           }
         } catch (membershipError) {
           console.error('Membership creation failed (non-critical, member still added):', membershipError)
@@ -424,7 +413,7 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
       credit_balance: 0,
       
       // Payment Information
-      payment_type: 'full',
+      payment_type: 'none',
       down_payment: 0,
       first_installment_date: new Date().toISOString().split('T')[0]
     })
@@ -886,6 +875,42 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
                         )}
                       </SelectContent>
                     </Select>
+                    
+                    {/* Package Duration Info */}
+                    {formData.package_id && (() => {
+                      const selectedPackage = packages.find(pkg => pkg.id === formData.package_id)
+                      if (!selectedPackage) return null
+                      
+                      const startDate = new Date(formData.joining_date)
+                      const endDate = new Date(startDate)
+                      endDate.setDate(endDate.getDate() + selectedPackage.duration_days)
+                      
+                      return (
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center space-x-2 text-sm">
+                            <Calendar className="w-4 h-4 text-blue-600" />
+                            <span className="font-medium text-blue-800">Membership Duration</span>
+                          </div>
+                          <div className="mt-2 space-y-1 text-sm text-blue-700">
+                            <div className="flex justify-between">
+                              <span>Start Date:</span>
+                              <span className="font-medium">{startDate.toLocaleDateString('en-IN')}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>End Date:</span>
+                              <span className="font-medium">{endDate.toLocaleDateString('en-IN')}</span>
+                            </div>
+                            <div className="flex justify-between border-t pt-1">
+                              <span>Duration:</span>
+                              <span className="font-medium">{selectedPackage.duration_days} days</span>
+                            </div>
+                            <div className="text-xs text-blue-600 mt-2">
+                              ✓ End date is automatically calculated based on package duration
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -898,6 +923,9 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
                         onChange={(e) => handleInputChange('joining_date', e.target.value)}
                         required
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        End date will be automatically calculated based on package duration
+                      </p>
                     </div>
                     <div>
                       <Label htmlFor="source">Source</Label>
@@ -955,12 +983,12 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
               <Card>
                 <CardHeader>
                   <CardTitle>Payment Information</CardTitle>
-                  <CardDescription>How much is the member paying today?</CardDescription>
+                  <CardDescription>Payment will be handled later from member's profile</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="payment_type">Payment Status *</Label>
-                    <Select value={formData.payment_type} onValueChange={(value) => handleInputChange('payment_type', value)}>
+                    <Label htmlFor="payment_type">Payment Status</Label>
+                    <Select value={formData.payment_type} disabled>
                       <SelectTrigger>
                         <SelectValue placeholder="Select payment status" />
                       </SelectTrigger>
@@ -970,80 +998,25 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
                         <SelectItem value="none">Will Pay Later</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Payment can be added later from the member's profile
+                    </p>
                   </div>
 
-                  {formData.payment_type === 'partial' && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="down_payment">Amount Paying Today (₹)</Label>
-                          <Input
-                            id="down_payment"
-                            type="number"
-                            value={formData.down_payment}
-                            onChange={(e) => handleInputChange('down_payment', parseFloat(e.target.value) || 0)}
-                            placeholder="Amount member is paying now"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="first_installment_date">Next Payment Expected Date</Label>
-                          <Input
-                            id="first_installment_date"
-                            type="date"
-                            value={formData.first_installment_date}
-                            onChange={(e) => handleInputChange('first_installment_date', e.target.value)}
-                            min={new Date().toISOString().split('T')[0]}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Payment Summary */}
-                      {formData.package_id && formData.down_payment > 0 && (
-                        <div className="bg-blue-50 p-4 rounded-lg">
-                          <h4 className="font-medium mb-2 text-blue-800">Payment Summary</h4>
-                          {(() => {
-                            const selectedPackage = packages.find(pkg => pkg.id === formData.package_id)
-                            if (!selectedPackage) return null
-                            
-                            const totalAmount = selectedPackage.price
-                            const paidToday = formData.down_payment || 0
-                            const remainingAmount = totalAmount - paidToday
-                            
-                            return (
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span className="text-gray-700">Package Price:</span>
-                                  <span className="font-semibold">₹{totalAmount.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-700">Paying Today:</span>
-                                  <span className="font-semibold text-green-600">₹{paidToday.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between border-t pt-2">
-                                  <span className="text-gray-700">Remaining Amount:</span>
-                                  <span className="font-semibold text-orange-600">₹{remainingAmount.toFixed(2)}</span>
-                                </div>
-                                {formData.first_installment_date && (
-                                  <div className="flex justify-between text-xs text-gray-600">
-                                    <span>Next Payment Expected:</span>
-                                    <span>{new Date(formData.first_installment_date).toLocaleDateString('hi-IN')}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })()}
-                        </div>
-                      )}
-                    </>
-                  )}
-
-                  {formData.payment_type === 'none' && (
-                    <div className="bg-yellow-50 p-4 rounded-lg">
-                      <p className="text-sm text-yellow-700">
-                        Member will pay later. You can add payments anytime from the member's profile.
-                      </p>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="font-medium text-blue-800">Payment Setup</span>
                     </div>
-                  )}
+                    <p className="text-sm text-blue-700">
+                      Member will be added without payment. You can add payments later from the member's profile page.
+                    </p>
+                    <div className="mt-3 text-xs text-blue-600">
+                      <p>• Go to Members → Select Member → Payment tab</p>
+                      <p>• Add full payment, partial payment, or payment plans</p>
+                      <p>• Track payment history and pending amounts</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
