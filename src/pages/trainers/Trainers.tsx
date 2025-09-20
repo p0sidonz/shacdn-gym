@@ -38,26 +38,18 @@ import {
   Eye,
   Users,
   DollarSign,
-  Calendar,
-  Phone,
-  Mail,
   Loader2,
   Dumbbell,
   Star,
-  Clock,
-  Target
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
-import { formatCurrency, formatDate } from '@/lib/utils'
-import { useAuth } from '@/context/AuthContext'
+import { formatCurrency } from '@/lib/utils'
 import { useGym } from '@/hooks/useGym'
-import type { Staff, UserRole, StaffStatus } from '@/types'
+import type { Staff, StaffStatus } from '@/types'
 import { TrainerPTDashboard } from '@/components/trainers/TrainerPTDashboard'
-import { PTPackageQuickFix } from '@/components/admin/PTPackageQuickFix'
-import { TrainerDebugger } from '@/components/debug/TrainerDebugger'
-import { TrainerQuickAdd } from '@/components/admin/TrainerQuickAdd'
 
 export default function TrainersManagement() {
-  const { user } = useAuth()
   const { gym, staff, fetchStaff, createStaff, updateStaff, loading } = useGym()
   
   const [searchTerm, setSearchTerm] = useState('')
@@ -66,6 +58,20 @@ export default function TrainersManagement() {
   const [selectedTrainer, setSelectedTrainer] = useState<Staff | null>(null)
   const [showViewDialog, setShowViewDialog] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [expandedTrainers, setExpandedTrainers] = useState<Set<string>>(new Set())
+
+  // Toggle trainer expansion
+  const toggleTrainerExpansion = (trainerId: string) => {
+    setExpandedTrainers(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(trainerId)) {
+        newSet.delete(trainerId)
+      } else {
+        newSet.add(trainerId)
+      }
+      return newSet
+    })
+  }
 
   // Filter only trainers
   const trainers = staff.filter(member => member.role === 'trainer')
@@ -990,36 +996,184 @@ The account is active and they can access their trainer dashboard right away!`)
 
         <TabsContent value="pt-overview" className="space-y-6">
           {/* Debug Component */}
-          <TrainerDebugger />
+          {/* <TrainerDebugger /> */}
           
           {/* Quick Add Trainer */}
-          <TrainerQuickAdd />
+          {/* <TrainerQuickAdd /> */}
           
           {/* Quick Fix Component */}
-          <PTPackageQuickFix onPackageFixed={() => setRefreshTrigger(prev => prev + 1)} />
+          {/* <PTPackageQuickFix onPackageFixed={() => setRefreshTrigger(prev => prev + 1)} /> */}
           
-          <div className="space-y-6">
-            {trainers.filter(t => t.status === 'active').map((trainer) => (
-              <Card key={trainer.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <Dumbbell className="w-5 h-5 text-blue-600" />
-                    <span>{trainer.profile?.first_name} {trainer.profile?.last_name}</span>
-                    <Badge variant="outline">{trainer.employee_id}</Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    {trainer.specializations?.join(', ')} • {trainer.experience_years} years experience
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <TrainerPTDashboard 
-                    trainer={trainer} 
-                    refreshTrigger={refreshTrigger}
-                    onSessionUpdated={() => setRefreshTrigger(prev => prev + 1)}
-                  />
-                </CardContent>
-              </Card>
-            ))}
+          <div className="space-y-4">
+            {trainers.filter(t => t.status === 'active').map((trainer) => {
+              const isExpanded = expandedTrainers.has(trainer.id)
+              
+              return (
+                <Card key={trainer.id} className="overflow-hidden">
+                  <CardHeader 
+                    className="cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => toggleTrainerExpansion(trainer.id)}
+                  >
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Dumbbell className="w-5 h-5 text-blue-600" />
+                        <span>{trainer.profile?.first_name} {trainer.profile?.last_name}</span>
+                        <Badge variant="outline">{trainer.employee_id}</Badge>
+                        <Badge variant="secondary">
+                          {formatCurrency(trainer.hourly_rate || 0)}/hr
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {trainer.experience_years} years exp
+                        </span>
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </CardTitle>
+                    <CardDescription>
+                      {trainer.specializations?.join(', ')} • Max {trainer.max_clients || 0} clients
+                    </CardDescription>
+                  </CardHeader>
+                  
+                  {isExpanded && (
+                    <CardContent className="pt-0">
+                      <div className="space-y-6">
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="text-center p-3 bg-blue-50 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">
+                              {trainer.max_clients || 0}
+                            </div>
+                            <div className="text-sm text-blue-600">Max Clients</div>
+                          </div>
+                          <div className="text-center p-3 bg-green-50 rounded-lg">
+                            <div className="text-2xl font-bold text-green-600">
+                              {trainer.experience_years}
+                            </div>
+                            <div className="text-sm text-green-600">Years Exp</div>
+                          </div>
+                          <div className="text-center p-3 bg-purple-50 rounded-lg">
+                            <div className="text-2xl font-bold text-purple-600">
+                              {trainer.specializations?.length || 0}
+                            </div>
+                            <div className="text-sm text-purple-600">Specializations</div>
+                          </div>
+                          <div className="text-center p-3 bg-orange-50 rounded-lg">
+                            <div className="text-2xl font-bold text-orange-600">
+                              {trainer.languages?.length || 0}
+                            </div>
+                            <div className="text-sm text-orange-600">Languages</div>
+                          </div>
+                        </div>
+
+                        {/* Specializations & Languages */}
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {trainer.specializations?.length > 0 && (
+                            <div>
+                              <h4 className="font-medium mb-2">Specializations</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {trainer.specializations.map((spec, index) => (
+                                  <Badge key={index} variant="outline">{spec}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {trainer.languages?.length > 0 && (
+                            <div>
+                              <h4 className="font-medium mb-2">Languages</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {trainer.languages.map((lang, index) => (
+                                  <Badge key={index} variant="secondary">{lang}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Certifications Preview */}
+                        {trainer.certifications && trainer.certifications.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Certifications</h4>
+                            <div className="space-y-1">
+                              {trainer.certifications.slice(0, 3).map((cert, index) => (
+                                <div key={index} className="text-sm text-muted-foreground">
+                                  {cert.name} • {cert.issuer}
+                                </div>
+                              ))}
+                              {trainer.certifications.length > 3 && (
+                                <div className="text-sm text-muted-foreground">
+                                  +{trainer.certifications.length - 3} more...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Education Preview */}
+                        {trainer.education && trainer.education.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Education</h4>
+                            <div className="space-y-1">
+                              {trainer.education.slice(0, 2).map((edu, index) => (
+                                <div key={index} className="text-sm text-muted-foreground">
+                                  {edu.degree} • {edu.institution}
+                                </div>
+                              ))}
+                              {trainer.education.length > 2 && (
+                                <div className="text-sm text-muted-foreground">
+                                  +{trainer.education.length - 2} more...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* PT Dashboard */}
+                        <div className="border-t pt-4">
+                          <h4 className="font-medium mb-4">PT Dashboard</h4>
+                          <TrainerPTDashboard 
+                            trainer={trainer} 
+                            refreshTrigger={refreshTrigger}
+                            onSessionUpdated={() => setRefreshTrigger(prev => prev + 1)}
+                          />
+                        </div>
+
+                        {/* Action Buttons */}
+                        {/* <div className="flex gap-2 pt-4 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTrainer(trainer)
+                              setShowViewDialog(true)
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTrainer(trainer)
+                              setShowViewDialog(true)
+                            }}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </Button>
+                        </div> */}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              )
+            })}
             
             {trainers.filter(t => t.status === 'active').length === 0 && (
               <Card>

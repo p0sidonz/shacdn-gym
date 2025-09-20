@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -45,6 +45,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useGym } from '@/hooks/useGym'
+import { supabase } from '@/lib/supabase'
 import type { Staff, UserRole, StaffStatus } from '@/types'
 
 export default function StaffManagement() {
@@ -104,11 +105,58 @@ export default function StaffManagement() {
     notes: ''
   })
 
+  // Edit Staff Form State
+  const [editStaffForm, setEditStaffForm] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    role: '' as UserRole,
+    employeeId: '',
+    salaryAmount: '',
+    salaryType: 'fixed',
+    baseCommissionRate: '',
+    hireDate: '',
+    probationEndDate: '',
+    contractEndDate: '',
+    specializations: '',
+    maxClients: '',
+    hourlyRate: '',
+    overtimeRate: '',
+    experienceYears: '',
+    languages: '',
+    workSchedule: {
+      monday: { start: '09:00', end: '17:00', enabled: true },
+      tuesday: { start: '09:00', end: '17:00', enabled: true },
+      wednesday: { start: '09:00', end: '17:00', enabled: true },
+      thursday: { start: '09:00', end: '17:00', enabled: true },
+      friday: { start: '09:00', end: '17:00', enabled: true },
+      saturday: { start: '09:00', end: '13:00', enabled: false },
+      sunday: { start: '09:00', end: '13:00', enabled: false }
+    },
+    certifications: [] as Array<{name: string, issuer: string, date: string}>,
+    education: [] as Array<{degree: string, institution: string, year: string}>,
+    bankAccountDetails: {
+      accountNumber: '',
+      bankName: '',
+      ifsc: '',
+      accountHolderName: ''
+    },
+    taxDetails: {
+      pan: '',
+      aadhar: '',
+      address: ''
+    },
+    notes: ''
+  })
+
   // Dynamic form states for arrays
   const [newCertification, setNewCertification] = useState({name: '', issuer: '', date: ''})
   const [newEducation, setNewEducation] = useState({degree: '', institution: '', year: ''})
+  const [newEditCertification, setNewEditCertification] = useState({name: '', issuer: '', date: ''})
+  const [newEditEducation, setNewEditEducation] = useState({degree: '', institution: '', year: ''})
 
   const [submitLoading, setSubmitLoading] = useState(false)
+  const [editSubmitLoading, setEditSubmitLoading] = useState(false)
 
   // Helper functions for managing arrays
   const addCertification = () => {
@@ -145,8 +193,56 @@ export default function StaffManagement() {
     }))
   }
 
+  // Helper functions for edit form arrays
+  const addEditCertification = () => {
+    if (newEditCertification.name && newEditCertification.issuer && newEditCertification.date) {
+      setEditStaffForm(prev => ({
+        ...prev,
+        certifications: [...prev.certifications, newEditCertification]
+      }))
+      setNewEditCertification({name: '', issuer: '', date: ''})
+    }
+  }
+
+  const removeEditCertification = (index: number) => {
+    setEditStaffForm(prev => ({
+      ...prev,
+      certifications: prev.certifications.filter((_, i) => i !== index)
+    }))
+  }
+
+  const addEditEducation = () => {
+    if (newEditEducation.degree && newEditEducation.institution && newEditEducation.year) {
+      setEditStaffForm(prev => ({
+        ...prev,
+        education: [...prev.education, newEditEducation]
+      }))
+      setNewEditEducation({degree: '', institution: '', year: ''})
+    }
+  }
+
+  const removeEditEducation = (index: number) => {
+    setEditStaffForm(prev => ({
+      ...prev,
+      education: prev.education.filter((_, i) => i !== index)
+    }))
+  }
+
   const updateWorkSchedule = (day: string, field: string, value: any) => {
     setAddStaffForm(prev => ({
+      ...prev,
+      workSchedule: {
+        ...prev.workSchedule,
+        [day]: {
+          ...prev.workSchedule[day as keyof typeof prev.workSchedule],
+          [field]: value
+        }
+      }
+    }))
+  }
+
+  const updateEditWorkSchedule = (day: string, field: string, value: any) => {
+    setEditStaffForm(prev => ({
       ...prev,
       workSchedule: {
         ...prev.workSchedule,
@@ -329,7 +425,121 @@ Please save these credentials securely.`
 
   const handleEditStaff = (staff: Staff) => {
     setSelectedStaff(staff)
+    
+    // Populate edit form with existing data
+    setEditStaffForm({
+      firstName: staff.profile?.first_name || '',
+      lastName: staff.profile?.last_name || '',
+      phone: staff.profile?.phone || '',
+      role: staff.role,
+      employeeId: staff.employee_id,
+      salaryAmount: staff.salary_amount.toString(),
+      salaryType: staff.salary_type,
+      baseCommissionRate: staff.base_commission_rate.toString(),
+      hireDate: staff.hire_date,
+      probationEndDate: staff.probation_end_date || '',
+      contractEndDate: staff.contract_end_date || '',
+      specializations: staff.specializations?.join(', ') || '',
+      maxClients: staff.max_clients?.toString() || '',
+      hourlyRate: staff.hourly_rate?.toString() || '',
+      overtimeRate: staff.overtime_rate?.toString() || '',
+      experienceYears: staff.experience_years?.toString() || '',
+      languages: staff.languages?.join(', ') || '',
+      workSchedule: staff.work_schedule || {
+        monday: { start: '09:00', end: '17:00', enabled: true },
+        tuesday: { start: '09:00', end: '17:00', enabled: true },
+        wednesday: { start: '09:00', end: '17:00', enabled: true },
+        thursday: { start: '09:00', end: '17:00', enabled: true },
+        friday: { start: '09:00', end: '17:00', enabled: true },
+        saturday: { start: '09:00', end: '13:00', enabled: false },
+        sunday: { start: '09:00', end: '13:00', enabled: false }
+      },
+      certifications: staff.certifications || [],
+      education: staff.education || [],
+      bankAccountDetails: staff.bank_account_details || {
+        accountNumber: '',
+        bankName: '',
+        ifsc: '',
+        accountHolderName: ''
+      },
+      taxDetails: staff.tax_details || {
+        pan: '',
+        aadhar: '',
+        address: ''
+      },
+      notes: staff.notes || ''
+    })
+    
     setShowEditDialog(true)
+  }
+
+  const handleUpdateStaff = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedStaff?.id) return
+
+    try {
+      setEditSubmitLoading(true)
+      
+      // Update profile first
+      if (selectedStaff.profile?.user_id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            first_name: editStaffForm.firstName,
+            last_name: editStaffForm.lastName,
+            phone: editStaffForm.phone
+          })
+          .eq('user_id', selectedStaff.profile.user_id)
+
+        if (profileError) {
+          throw new Error(`Profile update failed: ${profileError.message}`)
+        }
+      }
+
+      // Update staff record
+      const result = await updateStaff(selectedStaff.id, {
+        role: editStaffForm.role,
+        employee_id: editStaffForm.employeeId,
+        salary_amount: parseFloat(editStaffForm.salaryAmount),
+        salary_type: editStaffForm.salaryType,
+        base_commission_rate: editStaffForm.baseCommissionRate ? parseFloat(editStaffForm.baseCommissionRate) : 0,
+        hire_date: editStaffForm.hireDate,
+        probation_end_date: editStaffForm.probationEndDate || undefined,
+        contract_end_date: editStaffForm.contractEndDate || undefined,
+        specializations: editStaffForm.specializations.split(',').map(s => s.trim()).filter(s => s),
+        max_clients: editStaffForm.maxClients ? parseInt(editStaffForm.maxClients) : undefined,
+        hourly_rate: editStaffForm.hourlyRate ? parseFloat(editStaffForm.hourlyRate) : undefined,
+        overtime_rate: editStaffForm.overtimeRate ? parseFloat(editStaffForm.overtimeRate) : undefined,
+        experience_years: editStaffForm.experienceYears ? parseInt(editStaffForm.experienceYears) : 0,
+        languages: editStaffForm.languages.split(',').map(s => s.trim()).filter(s => s),
+        work_schedule: editStaffForm.workSchedule,
+        certifications: editStaffForm.certifications,
+        education: editStaffForm.education,
+        bank_account_details: editStaffForm.bankAccountDetails,
+        tax_details: editStaffForm.taxDetails,
+        notes: editStaffForm.notes || undefined
+      })
+
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      setShowEditDialog(false)
+      alert('Staff member updated successfully!')
+      
+    } catch (error) {
+      console.error('Error updating staff:', error)
+      
+      let errorMessage = 'Failed to update staff member. Please try again.'
+      
+      if (error instanceof Error) {
+        errorMessage = `Error: ${error.message}`
+      }
+      
+      alert(errorMessage)
+    } finally {
+      setEditSubmitLoading(false)
+    }
   }
 
   const getStatusColor = (status: StaffStatus) => {
@@ -1187,7 +1397,7 @@ Please save these credentials securely.`
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Experience</Label>
-                    <p>{selectedStaff.experience_years} years</p>
+                    <p>{selectedStaff.experience_years || 0} years</p>
                   </div>
                 </CardContent>
               </Card>
@@ -1225,7 +1435,7 @@ Please save these credentials securely.`
                       <div>
                         <Label className="text-sm font-medium text-muted-foreground">Languages</Label>
                         <div className="flex flex-wrap gap-2 mt-1">
-                          {selectedStaff.languages.map((lang, index) => (
+                          {selectedStaff.languages.map((lang: string, index: number) => (
                             <Badge key={index} variant="secondary">{lang}</Badge>
                           ))}
                         </div>
@@ -1251,9 +1461,9 @@ Please save these credentials securely.`
         </DialogContent>
       </Dialog>
 
-      {/* Edit Staff Dialog - Placeholder for now */}
+      {/* Edit Staff Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Staff Member</DialogTitle>
             <DialogDescription>
@@ -1261,12 +1471,486 @@ Please save these credentials securely.`
             </DialogDescription>
           </DialogHeader>
           
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Edit functionality coming soon!</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              This will allow you to update staff information, salary, and other details.
-            </p>
-          </div>
+          <form onSubmit={handleUpdateStaff} className="space-y-6">
+            <Tabs defaultValue="personal" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="personal">Personal</TabsTrigger>
+                <TabsTrigger value="job">Job Details</TabsTrigger>
+                <TabsTrigger value="professional">Professional</TabsTrigger>
+                <TabsTrigger value="additional">Additional</TabsTrigger>
+              </TabsList>
+
+              {/* Personal Information Tab */}
+              <TabsContent value="personal" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editFirstName">First Name *</Label>
+                    <Input
+                      id="editFirstName"
+                      value={editStaffForm.firstName}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, firstName: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editLastName">Last Name *</Label>
+                    <Input
+                      id="editLastName"
+                      value={editStaffForm.lastName}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, lastName: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="editPhone">Phone Number *</Label>
+                  <Input
+                    id="editPhone"
+                    value={editStaffForm.phone}
+                    onChange={(e) => setEditStaffForm(prev => ({ ...prev, phone: e.target.value }))}
+                    required
+                  />
+                </div>
+              </TabsContent>
+
+              {/* Job Details Tab */}
+              <TabsContent value="job" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editRole">Role *</Label>
+                    <Select onValueChange={(value) => setEditStaffForm(prev => ({ ...prev, role: value as UserRole }))} value={editStaffForm.role}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="trainer">Trainer</SelectItem>
+                        <SelectItem value="nutritionist">Nutritionist</SelectItem>
+                        <SelectItem value="receptionist">Receptionist</SelectItem>
+                        <SelectItem value="housekeeping">Housekeeping</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editEmployeeId">Employee ID *</Label>
+                    <Input
+                      id="editEmployeeId"
+                      value={editStaffForm.employeeId}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, employeeId: e.target.value }))}
+                      placeholder="e.g., EMP001"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editSalaryAmount">Salary Amount *</Label>
+                    <Input
+                      id="editSalaryAmount"
+                      type="number"
+                      value={editStaffForm.salaryAmount}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, salaryAmount: e.target.value }))}
+                      placeholder="25000"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editSalaryType">Salary Type</Label>
+                    <Select onValueChange={(value) => setEditStaffForm(prev => ({ ...prev, salaryType: value }))} value={editStaffForm.salaryType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Fixed" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixed">Fixed Monthly</SelectItem>
+                        <SelectItem value="hourly">Hourly</SelectItem>
+                        <SelectItem value="commission">Commission</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editBaseCommissionRate">Commission Rate (%)</Label>
+                    <Input
+                      id="editBaseCommissionRate"
+                      type="number"
+                      step="0.01"
+                      value={editStaffForm.baseCommissionRate}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, baseCommissionRate: e.target.value }))}
+                      placeholder="5.0"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editHireDate">Hire Date *</Label>
+                    <Input
+                      id="editHireDate"
+                      type="date"
+                      value={editStaffForm.hireDate}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, hireDate: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editProbationEndDate">Probation End Date</Label>
+                    <Input
+                      id="editProbationEndDate"
+                      type="date"
+                      value={editStaffForm.probationEndDate}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, probationEndDate: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editContractEndDate">Contract End Date</Label>
+                    <Input
+                      id="editContractEndDate"
+                      type="date"
+                      value={editStaffForm.contractEndDate}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, contractEndDate: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Professional Details Tab */}
+              <TabsContent value="professional" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="editSpecializations">Specializations</Label>
+                  <Textarea
+                    id="editSpecializations"
+                    value={editStaffForm.specializations}
+                    onChange={(e) => setEditStaffForm(prev => ({ ...prev, specializations: e.target.value }))}
+                    placeholder="Weight Training, Cardio, Yoga (comma separated)"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editMaxClients">Max Clients</Label>
+                    <Input
+                      id="editMaxClients"
+                      type="number"
+                      value={editStaffForm.maxClients}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, maxClients: e.target.value }))}
+                      placeholder="20"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editExperienceYears">Experience (Years)</Label>
+                    <Input
+                      id="editExperienceYears"
+                      type="number"
+                      value={editStaffForm.experienceYears}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, experienceYears: e.target.value }))}
+                      placeholder="5"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="editHourlyRate">Hourly Rate</Label>
+                    <Input
+                      id="editHourlyRate"
+                      type="number"
+                      step="0.01"
+                      value={editStaffForm.hourlyRate}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, hourlyRate: e.target.value }))}
+                      placeholder="500"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="editOvertimeRate">Overtime Rate</Label>
+                    <Input
+                      id="editOvertimeRate"
+                      type="number"
+                      step="0.01"
+                      value={editStaffForm.overtimeRate}
+                      onChange={(e) => setEditStaffForm(prev => ({ ...prev, overtimeRate: e.target.value }))}
+                      placeholder="750"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="editLanguages">Languages</Label>
+                  <Input
+                    id="editLanguages"
+                    value={editStaffForm.languages}
+                    onChange={(e) => setEditStaffForm(prev => ({ ...prev, languages: e.target.value }))}
+                    placeholder="English, Hindi, Spanish (comma separated)"
+                  />
+                </div>
+
+                {/* Certifications */}
+                <div className="space-y-3">
+                  <Label>Certifications</Label>
+                  <div className="space-y-2">
+                    {editStaffForm.certifications.map((cert, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 border rounded">
+                        <div className="flex-1">
+                          <span className="font-medium">{cert.name}</span> - {cert.issuer} ({cert.date})
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeEditCertification(index)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input
+                        placeholder="Certification Name"
+                        value={newEditCertification.name}
+                        onChange={(e) => setNewEditCertification(prev => ({ ...prev, name: e.target.value }))}
+                      />
+                      <Input
+                        placeholder="Issuing Organization"
+                        value={newEditCertification.issuer}
+                        onChange={(e) => setNewEditCertification(prev => ({ ...prev, issuer: e.target.value }))}
+                      />
+                      <div className="flex gap-1">
+                        <Input
+                          type="date"
+                          value={newEditCertification.date}
+                          onChange={(e) => setNewEditCertification(prev => ({ ...prev, date: e.target.value }))}
+                        />
+                        <Button type="button" onClick={addEditCertification} size="sm">
+                          <UserPlus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Education */}
+                <div className="space-y-3">
+                  <Label>Education</Label>
+                  <div className="space-y-2">
+                    {editStaffForm.education.map((edu, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 border rounded">
+                        <div className="flex-1">
+                          <span className="font-medium">{edu.degree}</span> - {edu.institution} ({edu.year})
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeEditEducation(index)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input
+                        placeholder="Degree/Qualification"
+                        value={newEditEducation.degree}
+                        onChange={(e) => setNewEditEducation(prev => ({ ...prev, degree: e.target.value }))}
+                      />
+                      <Input
+                        placeholder="Institution Name"
+                        value={newEditEducation.institution}
+                        onChange={(e) => setNewEditEducation(prev => ({ ...prev, institution: e.target.value }))}
+                      />
+                      <div className="flex gap-1">
+                        <Input
+                          placeholder="Year"
+                          value={newEditEducation.year}
+                          onChange={(e) => setNewEditEducation(prev => ({ ...prev, year: e.target.value }))}
+                        />
+                        <Button type="button" onClick={addEditEducation} size="sm">
+                          <UserPlus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Additional Details Tab */}
+              <TabsContent value="additional" className="space-y-4">
+                {/* Work Schedule */}
+                <div className="space-y-3">
+                  <Label>Work Schedule</Label>
+                  <div className="space-y-2">
+                    {Object.entries(editStaffForm.workSchedule).map(([day, schedule]) => (
+                      <div key={day} className="flex items-center gap-4 p-3 border rounded">
+                        <div className="w-20">
+                          <Label className="capitalize">{day}</Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={schedule.enabled}
+                            onChange={(e) => updateEditWorkSchedule(day, 'enabled', e.target.checked)}
+                            className="rounded"
+                          />
+                          <span className="text-sm text-muted-foreground">Working</span>
+                        </div>
+                        {schedule.enabled && (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <Label className="text-sm">Start:</Label>
+                              <Input
+                                type="time"
+                                value={schedule.start}
+                                onChange={(e) => updateEditWorkSchedule(day, 'start', e.target.value)}
+                                className="w-24"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Label className="text-sm">End:</Label>
+                              <Input
+                                type="time"
+                                value={schedule.end}
+                                onChange={(e) => updateEditWorkSchedule(day, 'end', e.target.value)}
+                                className="w-24"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Bank Account Details */}
+                <div className="space-y-3">
+                  <Label>Bank Account Details</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editAccountNumber">Account Number</Label>
+                      <Input
+                        id="editAccountNumber"
+                        value={editStaffForm.bankAccountDetails.accountNumber}
+                        onChange={(e) => setEditStaffForm(prev => ({
+                          ...prev,
+                          bankAccountDetails: { ...prev.bankAccountDetails, accountNumber: e.target.value }
+                        }))}
+                        placeholder="1234567890"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editBankName">Bank Name</Label>
+                      <Input
+                        id="editBankName"
+                        value={editStaffForm.bankAccountDetails.bankName}
+                        onChange={(e) => setEditStaffForm(prev => ({
+                          ...prev,
+                          bankAccountDetails: { ...prev.bankAccountDetails, bankName: e.target.value }
+                        }))}
+                        placeholder="HDFC Bank"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editIfsc">IFSC Code</Label>
+                      <Input
+                        id="editIfsc"
+                        value={editStaffForm.bankAccountDetails.ifsc}
+                        onChange={(e) => setEditStaffForm(prev => ({
+                          ...prev,
+                          bankAccountDetails: { ...prev.bankAccountDetails, ifsc: e.target.value }
+                        }))}
+                        placeholder="HDFC0001234"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editAccountHolderName">Account Holder Name</Label>
+                      <Input
+                        id="editAccountHolderName"
+                        value={editStaffForm.bankAccountDetails.accountHolderName}
+                        onChange={(e) => setEditStaffForm(prev => ({
+                          ...prev,
+                          bankAccountDetails: { ...prev.bankAccountDetails, accountHolderName: e.target.value }
+                        }))}
+                        placeholder="John Doe"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tax Details */}
+                <div className="space-y-3">
+                  <Label>Tax Details</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editPan">PAN Number</Label>
+                      <Input
+                        id="editPan"
+                        value={editStaffForm.taxDetails.pan}
+                        onChange={(e) => setEditStaffForm(prev => ({
+                          ...prev,
+                          taxDetails: { ...prev.taxDetails, pan: e.target.value }
+                        }))}
+                        placeholder="ABCDE1234F"
+                        maxLength={10}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editAadhar">Aadhar Number</Label>
+                      <Input
+                        id="editAadhar"
+                        value={editStaffForm.taxDetails.aadhar}
+                        onChange={(e) => setEditStaffForm(prev => ({
+                          ...prev,
+                          taxDetails: { ...prev.taxDetails, aadhar: e.target.value }
+                        }))}
+                        placeholder="123456789012"
+                        maxLength={12}
+                      />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="editAddress">Address</Label>
+                      <Textarea
+                        id="editAddress"
+                        value={editStaffForm.taxDetails.address}
+                        onChange={(e) => setEditStaffForm(prev => ({
+                          ...prev,
+                          taxDetails: { ...prev.taxDetails, address: e.target.value }
+                        }))}
+                        placeholder="Complete address for tax purposes"
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="editNotes">Notes</Label>
+                  <Textarea
+                    id="editNotes"
+                    value={editStaffForm.notes}
+                    onChange={(e) => setEditStaffForm(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Additional notes about the staff member..."
+                    rows={3}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={editSubmitLoading}>
+                {editSubmitLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Staff Member'
+                )}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

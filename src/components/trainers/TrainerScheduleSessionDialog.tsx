@@ -268,6 +268,18 @@ export const TrainerScheduleSessionDialog: React.FC<TrainerScheduleSessionDialog
                   <span className="text-gray-600">Package:</span>
                   <p className="font-medium">{membership?.membership_packages?.name}</p>
                 </div>
+                <div>
+                  <span className="text-gray-600">Plan Period:</span>
+                  <p className="font-medium">
+                    {formatDate(membership?.start_date)} - {formatDate(membership?.end_date)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-gray-600">Sessions Remaining:</span>
+                  <p className="font-medium text-orange-600">
+                    {membership?.pt_sessions_remaining || 0} sessions
+                  </p>
+                </div>
               </div>
 
               {sessionCalculation && (

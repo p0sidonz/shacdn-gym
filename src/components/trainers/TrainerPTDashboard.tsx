@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { SessionDetailsDialog } from '../members/SessionDetailsDialog'
 import { TrainerScheduleSessionDialog } from './TrainerScheduleSessionDialog'
+import { QuickSessionManager } from './QuickSessionManager'
 
 interface TrainerPTDashboardProps {
   trainer: any
@@ -236,7 +237,7 @@ export const TrainerPTDashboard: React.FC<TrainerPTDashboardProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* PT Overview Stats */}
+      {/* PT Overview Stats
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
@@ -287,15 +288,24 @@ export const TrainerPTDashboard: React.FC<TrainerPTDashboardProps> = ({
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
-      <Tabs defaultValue="clients" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="quick" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="quick">Quick Manager</TabsTrigger>
           <TabsTrigger value="clients">My Clients ({totalActiveClients})</TabsTrigger>
           <TabsTrigger value="upcoming">Upcoming ({upcomingSessions.length})</TabsTrigger>
           <TabsTrigger value="sessions">All Sessions</TabsTrigger>
           <TabsTrigger value="earnings">Earnings</TabsTrigger>
         </TabsList>
+
+        {/* Quick Session Manager Tab */}
+        <TabsContent value="quick" className="space-y-4">
+          <QuickSessionManager 
+            trainer={trainer} 
+            onSessionUpdated={handleDialogClose}
+          />
+        </TabsContent>
 
         {/* Assigned Clients Tab */}
         <TabsContent value="clients" className="space-y-4">

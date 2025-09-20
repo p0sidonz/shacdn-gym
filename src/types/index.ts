@@ -209,11 +209,21 @@ export interface Staff {
   salary_type: string
   base_commission_rate: number
   hire_date: string
+  probation_end_date?: string
+  contract_end_date?: string
   status: StaffStatus
   specializations: string[]
   certifications: any[]
+  education: any[]
+  experience_years?: number
+  languages: string[]
+  work_schedule?: any
   max_clients?: number
   hourly_rate?: number
+  overtime_rate?: number
+  bank_account_details?: any
+  tax_details?: any
+  notes?: string
   created_at: string
   updated_at: string
 }
