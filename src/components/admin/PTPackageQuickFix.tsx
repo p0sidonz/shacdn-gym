@@ -7,7 +7,11 @@ import { AlertTriangle, CheckCircle, Wrench } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { supabase } from '@/lib/supabase'
 
-export const PTPackageQuickFix: React.FC = () => {
+interface PTPackageQuickFixProps {
+  onPackageFixed?: () => void
+}
+
+export const PTPackageQuickFix: React.FC<PTPackageQuickFixProps> = ({ onPackageFixed }) => {
   const { gymId } = useAuth()
   const [loading, setLoading] = useState(false)
   const [sessionsCount, setSessionsCount] = useState(10)
@@ -51,6 +55,11 @@ export const PTPackageQuickFix: React.FC = () => {
       if (membershipError) throw membershipError
 
       setResult(`✅ Successfully updated PT package with ${sessionsCount} sessions!`)
+      
+      // Trigger refresh
+      if (onPackageFixed) {
+        onPackageFixed()
+      }
 
     } catch (error) {
       console.error('Error fixing PT package:', error)

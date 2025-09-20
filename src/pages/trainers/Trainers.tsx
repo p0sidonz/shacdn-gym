@@ -58,13 +58,14 @@ import { TrainerQuickAdd } from '@/components/admin/TrainerQuickAdd'
 
 export default function TrainersManagement() {
   const { user } = useAuth()
-  const { gym, staff, fetchStaff, createStaff, updateStaff, loading } = useGym(user?.id)
+  const { gym, staff, fetchStaff, createStaff, updateStaff, loading } = useGym()
   
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<StaffStatus | 'all'>('all')
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [selectedTrainer, setSelectedTrainer] = useState<Staff | null>(null)
   const [showViewDialog, setShowViewDialog] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   // Filter only trainers
   const trainers = staff.filter(member => member.role === 'trainer')
@@ -995,7 +996,7 @@ The account is active and they can access their trainer dashboard right away!`)
           <TrainerQuickAdd />
           
           {/* Quick Fix Component */}
-          <PTPackageQuickFix />
+          <PTPackageQuickFix onPackageFixed={() => setRefreshTrigger(prev => prev + 1)} />
           
           <div className="space-y-6">
             {trainers.filter(t => t.status === 'active').map((trainer) => (
@@ -1011,7 +1012,11 @@ The account is active and they can access their trainer dashboard right away!`)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <TrainerPTDashboard trainer={trainer} />
+                  <TrainerPTDashboard 
+                    trainer={trainer} 
+                    refreshTrigger={refreshTrigger}
+                    onSessionUpdated={() => setRefreshTrigger(prev => prev + 1)}
+                  />
                 </CardContent>
               </Card>
             ))}

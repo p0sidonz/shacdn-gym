@@ -25,11 +25,13 @@ import { TrainerScheduleSessionDialog } from './TrainerScheduleSessionDialog'
 interface TrainerPTDashboardProps {
   trainer: any
   onSessionUpdated?: () => void
+  refreshTrigger?: number
 }
 
 export const TrainerPTDashboard: React.FC<TrainerPTDashboardProps> = ({
   trainer,
-  onSessionUpdated
+  onSessionUpdated,
+  refreshTrigger
 }) => {
   const { gymId } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -46,7 +48,7 @@ export const TrainerPTDashboard: React.FC<TrainerPTDashboardProps> = ({
     if (trainer?.id) {
       loadTrainerPTData()
     }
-  }, [trainer?.id])
+  }, [trainer?.id, refreshTrigger])
 
   const loadTrainerPTData = async () => {
     setLoading(true)
@@ -69,22 +71,52 @@ export const TrainerPTDashboard: React.FC<TrainerPTDashboardProps> = ({
             id,
             name,
             price
-          ),
-          memberships!memberships_member_id_fkey (
-            id,
-            pt_sessions_remaining,
-            pt_sessions_used,
-            start_date,
-            end_date,
-            status
           )
         `)
         .eq('trainer_id', trainer.id)
         .eq('is_active', true)
-        .gt('memberships.pt_sessions_remaining', 0)
 
       if (membersError) throw membersError
-      setAssignedMembers(members || [])
+
+      // Now get the memberships for these members separately
+      const memberIds = members?.map(m => m.member_id) || []
+      let assignedMembersWithSessions = []
+
+      if (memberIds.length > 0) {
+        const { data: memberships, error: membershipsError } = await supabase
+          .from('memberships')
+          .select(`
+            id,
+            member_id,
+            package_id,
+            pt_sessions_remaining,
+            pt_sessions_used,
+            start_date,
+            end_date,
+            status,
+            membership_packages (
+              id,
+              name,
+              price
+            )
+          `)
+          .in('member_id', memberIds)
+          .gt('pt_sessions_remaining', 0)
+          .eq('status', 'active')
+
+        if (membershipsError) throw membershipsError
+
+        // Combine commission rules with memberships
+        assignedMembersWithSessions = members?.map(rule => {
+          const membership = memberships?.find(m => m.member_id === rule.member_id)
+          return {
+            ...rule,
+            memberships: membership
+          }
+        }).filter(rule => rule.memberships) || []
+      }
+
+      setAssignedMembers(assignedMembersWithSessions)
 
       // Load training sessions for this trainer
       const { data: sessions, error: sessionsError } = await supabase
