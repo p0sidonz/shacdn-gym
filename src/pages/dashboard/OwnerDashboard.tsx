@@ -78,6 +78,133 @@ export default function OwnerDashboard() {
     expenses: { total: 0, monthly: 0, today: 0 }
   })
 
+  // Debug: Log all birthday data
+  console.log('🎂 All birthday data:', upcomingBirthdays.map(member => ({
+    name: `${member.profile?.first_name} ${member.profile?.last_name}`,
+    birthDate: member.profile?.date_of_birth,
+    profileKeys: Object.keys(member.profile || {}),
+    today: new Date().toDateString()
+  })))
+  
+  // Debug: Check if any members have date_of_birth
+  const membersWithBirthdays = upcomingBirthdays.filter(member => member.profile?.date_of_birth)
+  console.log('🎂 Members with birthdays:', membersWithBirthdays.length, 'out of', upcomingBirthdays.length)
+  
+  // Debug: Show today's date info
+  const today = new Date()
+  console.log('🎂 Today\'s date info:', {
+    today: today.toDateString(),
+    month: today.getMonth(),
+    date: today.getDate(),
+    year: today.getFullYear()
+  })
+  
+  // Debug: Show specific member with 1993-09-22 birthday
+  const testMember = upcomingBirthdays.find(member => 
+    member.profile?.date_of_birth === '1993-09-22' || 
+    member.profile?.date_of_birth?.includes('1993-09-22')
+  )
+  if (testMember) {
+    console.log('🎂 Found test member with 1993-09-22:', testMember)
+  } else {
+    console.log('🎂 Test member with 1993-09-22 not found')
+    // Show all date formats we have
+    console.log('🎂 All date formats found:', upcomingBirthdays.map(member => ({
+      name: `${member.profile?.first_name} ${member.profile?.last_name}`,
+      dateOfBirth: member.profile?.date_of_birth,
+      dateType: typeof member.profile?.date_of_birth
+    })))
+  }
+
+  // Helper functions for birthday filtering
+  const isBirthdayToday = (member: any) => {
+    const profile = member.profile as any
+    if (!profile?.date_of_birth) return false
+    const birthDate = new Date(profile.date_of_birth)
+    const today = new Date()
+    
+    // Create this year's birthday date
+    const thisYearBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate())
+    
+    // If birthday has already passed this year, check next year
+    if (thisYearBirthday < today) {
+      thisYearBirthday.setFullYear(today.getFullYear() + 1)
+    }
+    
+    // Check if birthday is today
+    const isToday = thisYearBirthday.getMonth() === today.getMonth() && thisYearBirthday.getDate() === today.getDate()
+    
+    // Debug logging
+    if (isToday) {
+      console.log('🎂 Birthday today found:', {
+        name: `${profile.first_name} ${profile.last_name}`,
+        birthDate: profile.date_of_birth,
+        thisYearBirthday: thisYearBirthday.toDateString(),
+        today: today.toDateString()
+      })
+    }
+    
+    return isToday
+  }
+
+  const isBirthdayThisWeek = (member: any) => {
+    const profile = member.profile as any
+    if (!profile?.date_of_birth) return false
+    const birthDate = new Date(profile.date_of_birth)
+    const today = new Date()
+    
+    // Create this year's birthday date
+    const thisYearBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate())
+    
+    // If birthday has already passed this year, check next year
+    if (thisYearBirthday < today) {
+      thisYearBirthday.setFullYear(today.getFullYear() + 1)
+    }
+    
+    // Check if birthday is within the next 7 days
+    const weekEnd = new Date(today)
+    weekEnd.setDate(today.getDate() + 7)
+    
+    const isThisWeek = thisYearBirthday >= today && thisYearBirthday <= weekEnd
+    
+    // Debug logging
+    if (isThisWeek) {
+      console.log('🎂 Birthday this week found:', {
+        name: `${profile.first_name} ${profile.last_name}`,
+        birthDate: profile.date_of_birth,
+        thisYearBirthday: thisYearBirthday.toDateString(),
+        today: today.toDateString(),
+        weekEnd: weekEnd.toDateString()
+      })
+    }
+    
+    return isThisWeek
+  }
+
+  // Debug: Check today's birthdays specifically (after function declarations)
+  const todayBirthdays = upcomingBirthdays.filter(isBirthdayToday)
+  console.log('🎂 Today\'s birthdays count:', todayBirthdays.length)
+  
+  // Debug: Test the 1993-09-22 birthday specifically
+  const testMemberWithBirthday = upcomingBirthdays.find(member => 
+    member.profile?.date_of_birth === '1993-09-22' || 
+    member.profile?.date_of_birth?.includes('1993-09-22')
+  )
+  if (testMemberWithBirthday) {
+    const profile = testMemberWithBirthday.profile as any
+    const birthDate = new Date(profile.date_of_birth)
+    const thisYearBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate())
+    console.log('🎂 Test member birthday analysis:', {
+      name: `${profile.first_name} ${profile.last_name}`,
+      originalBirthDate: profile.date_of_birth,
+      thisYearBirthday: thisYearBirthday.toDateString(),
+      today: today.toDateString(),
+      isToday: thisYearBirthday.getMonth() === today.getMonth() && thisYearBirthday.getDate() === today.getDate(),
+      monthMatch: thisYearBirthday.getMonth() === today.getMonth(),
+      dateMatch: thisYearBirthday.getDate() === today.getDate()
+    })
+  }
+
   // Chart data for Last 30 Days - using real payment data
   const last30DaysData = {
     labels: Array.from({ length: 30 }, (_, i) => {
@@ -306,24 +433,81 @@ export default function OwnerDashboard() {
 
       if (error) throw error
 
+      console.log('🎂 Raw birthday data from DB:', data?.map((member: any) => ({
+        name: `${member.profile?.first_name} ${member.profile?.last_name}`,
+        birthDate: member.profile?.date_of_birth,
+        hasDateOfBirth: !!member.profile?.date_of_birth
+      })))
+
       // Filter birthdays based on the selected period
       const birthdays = data?.filter(member => {
         const profile = member.profile as any
         if (!profile || !profile.date_of_birth) return false
         
         const birthDate = new Date(profile.date_of_birth)
-        const currentYear = today.getFullYear()
         
-        // Set birth date to current year
-        const thisYearBirthday = new Date(currentYear, birthDate.getMonth(), birthDate.getDate())
-        
-        // If birthday has passed this year, check next year
-        if (thisYearBirthday < today) {
-          thisYearBirthday.setFullYear(currentYear + 1)
+        // For week filter, check if birthday falls within the week based on month and day
+        if (filter === 'week') {
+          // Check each day in the week range
+          for (let i = 0; i <= 7; i++) {
+            const checkDate = new Date(today)
+            checkDate.setDate(today.getDate() + i)
+            
+            if (checkDate.getMonth() === birthDate.getMonth() && checkDate.getDate() === birthDate.getDate()) {
+              return true
+            }
+          }
+          return false
         }
         
-        return thisYearBirthday >= startDate && thisYearBirthday <= endDate
+        // For today filter, check if today matches the birthday month and day
+        if (filter === 'today') {
+          return today.getMonth() === birthDate.getMonth() && today.getDate() === birthDate.getDate()
+        }
+        
+        // For month filter, check if birthday is in the current month
+        if (filter === 'month') {
+          return today.getMonth() === birthDate.getMonth()
+        }
+        
+        return false
       }) || []
+
+      console.log('🎂 Filtered birthdays for', filter, ':', birthdays.map((member: any) => ({
+        name: `${member.profile?.first_name} ${member.profile?.last_name}`,
+        birthDate: member.profile?.date_of_birth,
+        birthMonth: new Date(member.profile?.date_of_birth).getMonth(),
+        birthDay: new Date(member.profile?.date_of_birth).getDate()
+      })))
+      
+      // Debug: Show date range and sample calculations
+      console.log('🎂 Date range for', filter, ':', {
+        startDate: startDate.toDateString(),
+        endDate: endDate.toDateString(),
+        today: today.toDateString()
+      })
+      
+      // Debug: Show sample birthday calculations
+      if (data && data.length > 0) {
+        const sampleMember = data[0]
+        const profile = sampleMember.profile as any
+        if (profile?.date_of_birth) {
+          const birthDate = new Date(profile.date_of_birth)
+          const birthMonth = birthDate.getMonth()
+          const birthDay = birthDate.getDate()
+          
+          console.log('🎂 Sample birthday calculation:', {
+            name: `${profile.first_name} ${profile.last_name}`,
+            originalBirthDate: profile.date_of_birth,
+            birthMonth: birthMonth,
+            birthDay: birthDay,
+            todayMonth: today.getMonth(),
+            todayDay: today.getDate(),
+            isToday: today.getMonth() === birthMonth && today.getDate() === birthDay,
+            filter: filter
+          })
+        }
+      }
 
       // Sort by birthday date
       birthdays.sort((a, b) => {
@@ -494,7 +678,7 @@ export default function OwnerDashboard() {
           followUps,
           expiries
         ] = await Promise.all([
-          getUpcomingBirthdays('today'),
+          getUpcomingBirthdays('week'), // Get all birthdays for the week, then filter in UI
           getRecentIncome(),
           getRecentFollowUps(),
           getExpiringMemberships()
@@ -1095,13 +1279,7 @@ export default function OwnerDashboard() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4 text-pink-600">Today's Birthdays</h3>
                   <div className="space-y-3">
-                    {upcomingBirthdays.filter(member => {
-                      const profile = member.profile as any
-                      if (!profile?.date_of_birth) return false
-                      const birthDate = new Date(profile.date_of_birth)
-                      const today = new Date()
-                      return birthDate.getMonth() === today.getMonth() && birthDate.getDate() === today.getDate()
-                    }).map((member, index) => {
+                    {upcomingBirthdays.filter(isBirthdayToday).map((member, index) => {
                       const profile = member.profile as any
                       return (
                         <div key={index} className="flex items-center gap-4 p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-lg hover:shadow-md transition-shadow">
@@ -1121,13 +1299,7 @@ export default function OwnerDashboard() {
                         </div>
                       )
                     })}
-                    {upcomingBirthdays.filter(member => {
-                      const profile = member.profile as any
-                      if (!profile?.date_of_birth) return false
-                      const birthDate = new Date(profile.date_of_birth)
-                      const today = new Date()
-                      return birthDate.getMonth() === today.getMonth() && birthDate.getDate() === today.getDate()
-                    }).length === 0 && (
+                    {upcomingBirthdays.filter(isBirthdayToday).length === 0 && (
                       <div className="text-center py-8 text-gray-500">
                         <Gift className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                         <p>No birthdays today</p>
@@ -1140,15 +1312,7 @@ export default function OwnerDashboard() {
                 <div>
                   <h3 className="text-lg font-semibold mb-4 text-blue-600">This Week's Birthdays</h3>
                   <div className="space-y-3">
-                    {upcomingBirthdays.filter(member => {
-                      const profile = member.profile as any
-                      if (!profile?.date_of_birth) return false
-                      const birthDate = new Date(profile.date_of_birth)
-                      const today = new Date()
-                      const weekEnd = new Date(today)
-                      weekEnd.setDate(today.getDate() + 7)
-                      return birthDate >= today && birthDate <= weekEnd
-                    }).map((member, index) => {
+                    {upcomingBirthdays.filter(isBirthdayThisWeek).map((member, index) => {
                       const profile = member.profile as any
                       return (
                         <div key={index} className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg hover:shadow-md transition-shadow">
@@ -1168,15 +1332,7 @@ export default function OwnerDashboard() {
                         </div>
                       )
                     })}
-                    {upcomingBirthdays.filter(member => {
-                      const profile = member.profile as any
-                      if (!profile?.date_of_birth) return false
-                      const birthDate = new Date(profile.date_of_birth)
-                      const today = new Date()
-                      const weekEnd = new Date(today)
-                      weekEnd.setDate(today.getDate() + 7)
-                      return birthDate >= today && birthDate <= weekEnd
-                    }).length === 0 && (
+                    {upcomingBirthdays.filter(isBirthdayThisWeek).length === 0 && (
                       <div className="text-center py-8 text-gray-500">
                         <Gift className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                         <p>No birthdays this week</p>
