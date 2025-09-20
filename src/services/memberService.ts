@@ -113,11 +113,21 @@ export class MemberService {
       if (error) throw error
       
       // Transform data to match UI expectations
-      const transformedData = (data || []).map(member => {
+      const transformedData = await Promise.all((data || []).map(async member => {
         // Find active or trial membership (both should be considered "current")
         const activeMembership = member.memberships?.find((m: any) => 
           m.status === 'active' || m.status === 'trial'
         )
+        
+        // Get payment stats for this member
+        const { data: payments } = await supabase
+          .from('payments')
+          .select('amount, status')
+          .eq('member_id', member.id)
+          .eq('status', 'paid')
+        
+        const totalPaid = payments?.reduce((sum, p) => sum + p.amount, 0) || 0
+        const totalPending = activeMembership?.amount_pending || 0
         
         return {
           ...member,
@@ -127,9 +137,13 @@ export class MemberService {
           attendance_stats: {
             attendance_percentage: 0, // Will be calculated separately if needed
             last_visit: null
+          },
+          payment_stats: {
+            total_paid: totalPaid,
+            total_pending: totalPending
           }
         }
-      })
+      }))
       
       return transformedData
     } catch (error) {
@@ -194,10 +208,24 @@ export class MemberService {
         m.status === 'active' || m.status === 'trial'
       )
       
+      // Get payment stats for this member
+      const { data: payments } = await supabase
+        .from('payments')
+        .select('amount, status')
+        .eq('member_id', id)
+        .eq('status', 'paid')
+      
+      const totalPaid = payments?.reduce((sum, p) => sum + p.amount, 0) || 0
+      const totalPending = activeMembership?.amount_pending || 0
+      
       return {
         ...data,
         current_membership: activeMembership,
-        membership_package: activeMembership?.membership_packages
+        membership_package: activeMembership?.membership_packages,
+        payment_stats: {
+          total_paid: totalPaid,
+          total_pending: totalPending
+        }
       }
     } catch (error) {
       console.error('Error fetching member:', error)

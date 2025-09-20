@@ -120,57 +120,64 @@ export const MemberDetailsDialog: React.FC<MemberDetailsDialogProps> = ({ member
         {children}
       </DrawerTrigger>
       <DrawerContent className="max-h-[95vh]">
-        <DrawerHeader className="border-b">
-          <DrawerTitle className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-gray-600" />
+        <DrawerHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+          <DrawerTitle className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+              <User className="w-8 h-8 text-white" />
             </div>
-            <div>
-              <div className="text-xl font-semibold">
+            <div className="flex-1">
+              <div className="text-2xl font-bold text-gray-900">
                 {currentMember.profile ? `${currentMember.profile.first_name} ${currentMember.profile.last_name}` : 'N/A'}
               </div>
-              <div className="text-sm text-gray-500">{currentMember.member_id}</div>
+              <div className="text-base text-gray-600 mt-1">{currentMember.member_id}</div>
+              <div className="text-sm text-gray-500 mt-1">
+                Member since {formatDate(new Date(currentMember.joining_date))}
+              </div>
             </div>
-            <div className="ml-auto">
+            <div className="flex flex-col items-end space-y-2">
               {getStatusBadge(currentMember.status)}
+              <div className="text-right">
+                <div className="text-sm text-gray-500">Total Paid</div>
+                <div className="text-lg font-semibold text-green-600">
+                  {formatCurrency(currentMember.payment_stats?.total_paid || 0)}
+                </div>
+              </div>
             </div>
           </DrawerTitle>
-          <DrawerDescription>
-            Member since {formatDate(new Date(currentMember.joining_date))}
-          </DrawerDescription>
         </DrawerHeader>
         
         <div className="overflow-y-auto flex-1">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-6 sticky top-0 bg-white z-10">
-            <TabsTrigger value="overview">
-              <User className="w-4 h-4 mr-2" />
-              Overview
+            <TabsList className="grid w-full grid-cols-6 sticky top-0 bg-white z-10 border-b shadow-sm">
+            <TabsTrigger value="overview" className="flex items-center gap-2 py-3">
+              <User className="w-5 h-5" />
+              <span className="font-medium">Overview</span>
             </TabsTrigger>
-              <TabsTrigger value="installments">
-                <Clock className="w-4 h-4 mr-2" />
-                Payments & Installments
+              <TabsTrigger value="installments" className="flex items-center gap-2 py-3">
+                <Clock className="w-5 h-5" />
+                <span className="font-medium">Payments</span>
               </TabsTrigger>
-            <TabsTrigger value="membership">
-              <CreditCard className="w-4 h-4 mr-2" />
-              Membership
+            <TabsTrigger value="membership" className="flex items-center gap-2 py-3">
+              <CreditCard className="w-5 h-5" />
+              <span className="font-medium">Membership</span>
             </TabsTrigger>
-            <TabsTrigger value="refunds">
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Refunds
+            <TabsTrigger value="refunds" className="flex items-center gap-2 py-3">
+              <RotateCcw className="w-5 h-5" />
+              <span className="font-medium">Refunds</span>
             </TabsTrigger>
-            <TabsTrigger value="fitness">
-              <Target className="w-4 h-4 mr-2" />
-              Fitness
+            <TabsTrigger value="fitness" className="flex items-center gap-2 py-3">
+              <Target className="w-5 h-5" />
+              <span className="font-medium">Fitness</span>
             </TabsTrigger>
-            <TabsTrigger value="attendance">
-              <Calendar className="w-4 h-4 mr-2" />
-              Attendance
+            <TabsTrigger value="attendance" className="flex items-center gap-2 py-3">
+              <Calendar className="w-5 h-5" />
+              <span className="font-medium">Attendance</span>
             </TabsTrigger>
           </TabsList>
 
-            <TabsContent value="overview" className="space-y-4 p-6">
-            <div className="flex justify-end">
+            <TabsContent value="overview" className="space-y-6 p-8">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Member Overview</h2>
               <EditMemberDialog 
                 member={currentMember} 
                 onMemberUpdated={() => {
@@ -182,96 +189,112 @@ export const MemberDetailsDialog: React.FC<MemberDetailsDialogProps> = ({ member
                 }} 
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <User className="w-5 h-5 mr-2" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                  <CardTitle className="flex items-center text-lg">
+                    <User className="w-6 h-6 mr-3 text-blue-600" />
                     Personal Information
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Phone className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm">{currentMember.profile?.phone || 'N/A'}</span>
+                <CardContent className="space-y-4 p-6">
+                  <div className="flex items-center space-x-3">
+                    <Phone className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <div className="text-sm text-gray-500">Phone</div>
+                      <div className="font-medium">{currentMember.profile?.phone || 'N/A'}</div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm">{currentMember.profile?.email || 'N/A'}</span>
+                  <div className="flex items-center space-x-3">
+                    <Mail className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <div className="text-sm text-gray-500">Email</div>
+                      <div className="font-medium">{currentMember.profile?.email || 'N/A'}</div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm">{currentMember.profile?.address || 'N/A'}</span>
+                  <div className="flex items-center space-x-3">
+                    <MapPin className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <div className="text-sm text-gray-500">Address</div>
+                      <div className="font-medium">{currentMember.profile?.address || 'N/A'}</div>
+                    </div>
                   </div>
                   {currentMember.profile?.date_of_birth && (
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm">
-                        Born {formatDate(new Date(currentMember.profile.date_of_birth))}
-                      </span>
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="w-5 h-5 text-gray-500" />
+                      <div>
+                        <div className="text-sm text-gray-500">Date of Birth</div>
+                        <div className="font-medium">
+                          {formatDate(new Date(currentMember.profile.date_of_birth))}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Heart className="w-5 h-5 mr-2" />
+              <Card className="shadow-lg">
+                <CardHeader className="bg-gradient-to-r from-red-50 to-pink-50">
+                  <CardTitle className="flex items-center text-lg">
+                    <Heart className="w-6 h-6 mr-3 text-red-600" />
                     Emergency Contact
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="text-sm">
-                    <strong>{member.profile?.emergency_contact_name || 'N/A'}</strong>
+                <CardContent className="space-y-4 p-6">
+                  <div className="space-y-2">
+                    <div className="text-sm text-gray-500">Contact Name</div>
+                    <div className="font-semibold text-lg">{member.profile?.emergency_contact_name || 'N/A'}</div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Phone className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm">{member.profile?.emergency_contact_phone || 'N/A'}</span>
+                  <div className="flex items-center space-x-3">
+                    <Phone className="w-5 h-5 text-gray-500" />
+                    <div>
+                      <div className="text-sm text-gray-500">Phone</div>
+                      <div className="font-medium">{member.profile?.emergency_contact_phone || 'N/A'}</div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Activity className="w-5 h-5 mr-2" />
+            <Card className="shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+                <CardTitle className="flex items-center text-lg">
+                  <Activity className="w-6 h-6 mr-3 text-green-600" />
                   Quick Stats
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">
+              <CardContent className="p-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-3xl font-bold text-blue-600">
                       {currentMember.attendance_stats?.total_visits || 0}
                     </div>
-                    <div className="text-sm text-gray-500">Total Visits</div>
+                    <div className="text-sm text-gray-600 font-medium">Total Visits</div>
                   </div>
-                  <div className="text-center">
-                    <div className={`text-2xl font-bold ${getAttendanceColor(currentMember.attendance_stats?.attendance_percentage || 0)}`}>
+                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                    <div className={`text-3xl font-bold ${getAttendanceColor(currentMember.attendance_stats?.attendance_percentage || 0)}`}>
                       {currentMember.attendance_stats?.attendance_percentage || 0}%
                     </div>
-                    <div className="text-sm text-gray-500">Attendance</div>
+                    <div className="text-sm text-gray-600 font-medium">Attendance</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-3xl font-bold text-green-600">
                       {formatCurrency(currentMember.payment_stats?.total_paid || 0)}
                     </div>
-                    <div className="text-sm text-gray-500">Total Paid</div>
+                    <div className="text-sm text-gray-600 font-medium">Total Paid</div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-red-600">
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <div className="text-3xl font-bold text-red-600">
                       {formatCurrency(currentMember.payment_stats?.total_pending || 0)}
                     </div>
-                    <div className="text-sm text-gray-500">Pending</div>
+                    <div className="text-sm text-gray-600 font-medium">Pending</div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-            <TabsContent value="membership" className="space-y-4 p-6">
+            <TabsContent value="membership" className="space-y-6 p-8">
             <Card>
               <CardHeader>
                 <CardTitle>Current Membership</CardTitle>
@@ -316,7 +339,7 @@ export const MemberDetailsDialog: React.FC<MemberDetailsDialogProps> = ({ member
                       <div>
                         <div className="text-sm text-gray-500">Amount Paid</div>
                         <div className="font-medium text-green-600">
-                          {formatCurrency(currentMember.current_membership.amount_paid)}
+                          {formatCurrency(currentMember.payment_stats?.total_paid || 0)}
                         </div>
                       </div>
                     </div>
@@ -444,7 +467,7 @@ export const MemberDetailsDialog: React.FC<MemberDetailsDialogProps> = ({ member
             </Card>
           </TabsContent>
 
-            <TabsContent value="installments" className="space-y-4 p-6">
+            <TabsContent value="installments" className="space-y-6 p-8">
             <Card>
               <CardHeader>
                 <CardTitle>Installment Plan</CardTitle>
@@ -682,7 +705,7 @@ export const MemberDetailsDialog: React.FC<MemberDetailsDialogProps> = ({ member
             </Card>
           </TabsContent>
 
-            <TabsContent value="fitness" className="space-y-4 p-6">
+            <TabsContent value="fitness" className="space-y-6 p-8">
             <Card>
               <CardHeader>
                 <CardTitle>Fitness Goals</CardTitle>
@@ -729,7 +752,7 @@ export const MemberDetailsDialog: React.FC<MemberDetailsDialogProps> = ({ member
             </Card>
           </TabsContent>
 
-            <TabsContent value="attendance" className="space-y-4 p-6">
+            <TabsContent value="attendance" className="space-y-6 p-8">
             <Card>
               <CardHeader>
                 <CardTitle>Attendance Overview</CardTitle>
@@ -769,7 +792,7 @@ export const MemberDetailsDialog: React.FC<MemberDetailsDialogProps> = ({ member
           </TabsContent>
 
 
-            <TabsContent value="refunds" className="space-y-4 p-6">
+            <TabsContent value="refunds" className="space-y-6 p-8">
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
@@ -834,14 +857,19 @@ export const MemberDetailsDialog: React.FC<MemberDetailsDialogProps> = ({ member
         </Tabs>
         </div>
 
-        <div className="flex justify-end space-x-2 p-6 border-t bg-gray-50">
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Close
-          </Button>
-          <Button>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Member
-          </Button>
+        <div className="flex justify-between items-center p-6 border-t bg-gradient-to-r from-gray-50 to-blue-50">
+          <div className="text-sm text-gray-600">
+            Last updated: {new Date().toLocaleDateString()}
+          </div>
+          <div className="flex space-x-3">
+            <Button variant="outline" onClick={() => setOpen(false)} size="lg">
+              Close
+            </Button>
+            <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+              <Edit className="w-5 h-5 mr-2" />
+              Edit Member
+            </Button>
+          </div>
         </div>
       </DrawerContent>
     </Drawer>

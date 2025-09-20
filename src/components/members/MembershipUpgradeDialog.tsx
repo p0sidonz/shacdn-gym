@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,9 +34,11 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
   const [formData, setFormData] = useState({
     new_package_id: '',
     upgrade_date: new Date().toISOString().split('T')[0],
-    prorated_calculation: 'proportional', // 'proportional' or 'full'
+    prorated_calculation: 'proportional', // 'proportional', 'full', or 'custom'
     payment_method: 'cash',
     additional_payment: 0,
+    custom_amount: 0, // For custom calculation method
+    ignore_previous_pending: false, // For custom method - whether to ignore previous pending
     reason: '',
     notes: ''
   })
@@ -48,7 +50,7 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
     if (formData.new_package_id && currentMembership) {
       calculateUpgradeCost()
     }
-  }, [formData.new_package_id, formData.prorated_calculation, formData.upgrade_date])
+  }, [formData.new_package_id, formData.prorated_calculation, formData.upgrade_date, formData.custom_amount, formData.ignore_previous_pending])
 
   const calculateUpgradeCost = () => {
     const newPackage = packages.find(p => p.id === formData.new_package_id)
@@ -66,20 +68,31 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
     let newEndDate = new Date(upgradeDate)
 
     if (formData.prorated_calculation === 'proportional') {
-      // Calculate remaining value of current membership
-      const dailyRate = currentMembership.total_amount_due / totalCurrentDays
+      // For proportional: Calculate remaining value based on what was actually paid
+      const dailyRate = (currentMembership.amount_paid || 0) / totalCurrentDays
       remainingValue = dailyRate * remainingDays
       
-      // Calculate proportional cost for new package
+      // Calculate proportional cost for new package for remaining days
       const newDailyRate = newPackage.price / newPackage.duration_days
       const upgradeCost = newDailyRate * remainingDays
       
+      // Additional cost = new package cost for remaining days - remaining value from old package
       additionalCost = Math.max(0, upgradeCost - remainingValue)
       newEndDate = new Date(currentEndDate) // Keep same end date
-    } else {
-      // Full package cost
-      additionalCost = newPackage.price
+    } else if (formData.prorated_calculation === 'full') {
+      // For full package: Pay full new package price, but get credit for remaining value from old package
+      const dailyRate = (currentMembership.amount_paid || 0) / totalCurrentDays
+      remainingValue = dailyRate * remainingDays
+      
+      // Full package cost minus any remaining value from current membership
+      additionalCost = Math.max(0, newPackage.price - remainingValue)
       newEndDate.setDate(newEndDate.getDate() + newPackage.duration_days)
+    } else if (formData.prorated_calculation === 'custom') {
+      // For custom: Use manually entered amount + existing pending amount (if not ignored)
+      const existingPending = formData.ignore_previous_pending ? 0 : (currentMembership.amount_pending || 0)
+      additionalCost = (formData.custom_amount || 0) + existingPending
+      remainingValue = 0 // No automatic calculation for custom
+      newEndDate = new Date(currentEndDate) // Keep same end date
     }
 
     setCostCalculation({
@@ -113,6 +126,11 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
       return
     }
 
+    if (formData.prorated_calculation === 'custom' && (!formData.custom_amount || formData.custom_amount <= 0)) {
+      alert('Please enter a valid custom amount')
+      return
+    }
+
     if (!costCalculation) {
       alert('Cost calculation not available')
       return
@@ -139,10 +157,15 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
         end_date: costCalculation.newEndDate.toISOString().split('T')[0],
         status: 'active',
         original_amount: costCalculation.newPackage.price,
-        total_amount_due: costCalculation.additionalCost,
-        amount_paid: costCalculation.additionalCost, // Assume immediate payment
-        amount_pending: 0,
-        is_trial: false
+        total_amount_due: formData.prorated_calculation === 'custom' ? 
+          costCalculation.additionalCost : // For custom: use total amount (custom + pending)
+          costCalculation.newPackage.price, // For other methods: use full package price
+        amount_paid: 0, // Will be updated when payment is added
+        amount_pending: formData.prorated_calculation === 'custom' ? 
+          costCalculation.additionalCost : // For custom: use total amount (custom + pending)
+          costCalculation.newPackage.price, // For other methods: use full package price
+        is_trial: false,
+        pt_sessions_remaining: costCalculation.newPackage.pt_sessions_included || 0
       }
 
       const { data: newMembership, error: membershipError } = await supabase
@@ -161,10 +184,11 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
         change_type: 'upgrade',
         change_date: formData.upgrade_date,
         amount_difference: costCalculation.additionalCost,
-        additional_payment: costCalculation.additionalCost,
+        additional_payment: 0, // No payment made during upgrade - will be handled separately
         remaining_days: costCalculation.remainingDays,
         prorated_amount: costCalculation.remainingValue,
         reason: formData.reason,
+        notes: `Package changed to ${costCalculation.newPackage.name}. Payment to be added separately.`,
         processed_by: (await supabase.auth.getUser()).data.user?.id
       }
 
@@ -172,30 +196,32 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
         .from('membership_changes')
         .insert([changeData])
 
-      // 4. Create payment record if additional payment
-      if (costCalculation.additionalCost > 0) {
-        const paymentData = {
-          gym_id: gymId,
+      // 4. Payment will be handled separately via Add Payment functionality
+      // No automatic payment creation - user will add payment manually
+
+      // 5. Handle trainer assignment for PT packages
+      if ((costCalculation.newPackage.package_type === 'personal_training' || 
+           costCalculation.newPackage.pt_sessions_included > 0) && 
+          member.assigned_trainer_id) {
+        // Create trainer commission rule for the new package
+        const commissionData = {
+          trainer_id: member.assigned_trainer_id,
+          package_id: formData.new_package_id,
           member_id: member.id,
-          membership_id: newMembership.id,
-          payment_type: 'upgrade_fee',
-          amount: costCalculation.additionalCost,
-          original_amount: costCalculation.additionalCost,
-          payment_method: formData.payment_method,
-          payment_date: formData.upgrade_date,
-          status: 'paid',
-          receipt_number: `UPG${Date.now()}`,
-          description: `Upgrade to ${costCalculation.newPackage.name}`,
-          notes: formData.notes,
-          processed_by: (await supabase.auth.getUser()).data.user?.id
+          commission_type: 'percentage',
+          commission_value: 10, // Default 10% commission
+          valid_from: formData.upgrade_date,
+          is_active: true,
+          notes: `Package change to ${costCalculation.newPackage.name}`,
+          created_by: (await supabase.auth.getUser()).data.user?.id
         }
 
         await supabase
-          .from('payments')
-          .insert([paymentData])
+          .from('trainer_commission_rules')
+          .insert([commissionData])
       }
 
-      alert(`Membership upgraded successfully to ${costCalculation.newPackage.name}!`)
+      alert(`Package changed successfully to ${costCalculation.newPackage.name}! Please add payment separately using the "Add Payment" feature.`)
       onUpgradeComplete()
       onOpenChange(false)
 
@@ -215,41 +241,43 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
   )
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ArrowUp className="w-5 h-5 text-green-600" />
-            Upgrade Membership
-          </DialogTitle>
-          <DialogDescription>
-            Upgrade {member.profile?.first_name} {member.profile?.last_name}'s membership to a higher tier
-          </DialogDescription>
-        </DialogHeader>
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="max-h-[95vh]">
+        <DrawerHeader className="border-b">
+          <DrawerTitle className="flex items-center gap-2 text-xl">
+            <ArrowUp className="w-6 h-6 text-green-600" />
+            Change Package
+          </DrawerTitle>
+          <DrawerDescription className="text-base">
+            Change {member.profile?.first_name} {member.profile?.last_name}'s membership package
+          </DrawerDescription>
+        </DrawerHeader>
+        
+        <div className="overflow-y-auto flex-1 p-6">
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
           {/* Current Membership Info */}
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Current Membership</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Package:</span>
-                  <p className="font-medium">{currentMembership.membership_packages?.name}</p>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
+                <div className="space-y-1">
+                  <span className="text-gray-600 font-medium">Package:</span>
+                  <p className="font-semibold text-lg">{currentMembership.membership_packages?.name}</p>
                 </div>
-                <div>
-                  <span className="text-gray-600">End Date:</span>
-                  <p className="font-medium">{formatDate(currentMembership.end_date)}</p>
+                <div className="space-y-1">
+                  <span className="text-gray-600 font-medium">End Date:</span>
+                  <p className="font-semibold text-lg">{formatDate(currentMembership.end_date)}</p>
                 </div>
-                <div>
-                  <span className="text-gray-600">Amount Paid:</span>
-                  <p className="font-medium">{formatCurrency(currentMembership.amount_paid || 0)}</p>
+                <div className="space-y-1">
+                  <span className="text-gray-600 font-medium">Amount Paid:</span>
+                  <p className="font-semibold text-lg text-green-600">{formatCurrency(currentMembership.amount_paid || 0)}</p>
                 </div>
-                <div>
-                  <span className="text-gray-600">Days Remaining:</span>
-                  <p className="font-medium">
+                <div className="space-y-1">
+                  <span className="text-gray-600 font-medium">Days Remaining:</span>
+                  <p className="font-semibold text-lg text-blue-600">
                     {Math.max(0, Math.ceil((new Date(currentMembership.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} days
                   </p>
                 </div>
@@ -265,19 +293,19 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
                 New Package Selection
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="new_package_id">Select New Package *</Label>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="new_package_id" className="text-base font-medium">Select New Package *</Label>
                 <Select value={formData.new_package_id} onValueChange={(value) => handleInputChange('new_package_id', value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 text-base">
                     <SelectValue placeholder="Choose upgrade package" />
                   </SelectTrigger>
                   <SelectContent>
                     {availableUpgrades.map((pkg) => (
                       <SelectItem key={pkg.id} value={pkg.id}>
-                        <div className="flex justify-between w-full">
-                          <span>{pkg.name}</span>
-                          <span className="text-green-600 font-medium ml-4">
+                        <div className="flex justify-between w-full items-center">
+                          <span className="font-medium">{pkg.name}</span>
+                          <span className="text-green-600 font-semibold ml-4">
                             {formatCurrency(pkg.price)} • {pkg.duration_days} days
                           </span>
                         </div>
@@ -286,34 +314,84 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
                   </SelectContent>
                 </Select>
                 {availableUpgrades.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-1">No upgrade packages available</p>
+                  <p className="text-sm text-gray-500 mt-2">No upgrade packages available</p>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="upgrade_date">Upgrade Date *</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="upgrade_date" className="text-base font-medium">Upgrade Date *</Label>
                   <Input
                     id="upgrade_date"
                     type="date"
                     value={formData.upgrade_date}
                     onChange={(e) => handleInputChange('upgrade_date', e.target.value)}
+                    className="h-12 text-base"
                     required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="prorated_calculation">Calculation Method</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="prorated_calculation" className="text-base font-medium">Calculation Method</Label>
                   <Select value={formData.prorated_calculation} onValueChange={(value) => handleInputChange('prorated_calculation', value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 text-base">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="proportional">Proportional (Remaining Period)</SelectItem>
                       <SelectItem value="full">Full Package Duration</SelectItem>
+                      <SelectItem value="custom">Custom Amount</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
+              {/* Custom Amount Input - Only show when custom method is selected */}
+              {formData.prorated_calculation === 'custom' && (
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="custom_amount" className="text-base font-medium">Custom Amount (₹)</Label>
+                    <Input
+                      id="custom_amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.custom_amount}
+                      onChange={(e) => handleInputChange('custom_amount', parseFloat(e.target.value) || 0)}
+                      placeholder="Enter custom amount"
+                      className="h-12 text-base"
+                      required
+                    />
+                  </div>
+                  
+                  {/* Ignore Previous Pending Option */}
+                  {currentMembership.amount_pending > 0 && (
+                    <div className="flex items-center space-x-3 p-3 bg-white rounded-lg border">
+                      <input
+                        type="checkbox"
+                        id="ignore_previous_pending"
+                        checked={formData.ignore_previous_pending}
+                        onChange={(e) => handleInputChange('ignore_previous_pending', e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <Label htmlFor="ignore_previous_pending" className="text-base font-medium cursor-pointer">
+                        Ignore previous pending amount ({formatCurrency(currentMembership.amount_pending)})
+                      </Label>
+                    </div>
+                  )}
+                  
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <p className="font-medium">Enter the amount for this package change</p>
+                    {currentMembership.amount_pending > 0 && !formData.ignore_previous_pending && (
+                      <p className="text-orange-600 font-semibold text-base">
+                        Current pending amount: {formatCurrency(currentMembership.amount_pending)}
+                      </p>
+                    )}
+                    <p className="text-blue-600 font-semibold text-lg">
+                      Total will be: {formatCurrency((formData.custom_amount || 0) + (formData.ignore_previous_pending ? 0 : (currentMembership.amount_pending || 0)))}
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -321,29 +399,48 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
           {costCalculation && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <DollarSign className="w-5 h-5" />
                   Cost Calculation
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">New Package:</span>
-                    <p className="font-medium">{costCalculation.newPackage.name}</p>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="space-y-1">
+                    <span className="text-gray-600 font-medium">New Package:</span>
+                    <p className="font-semibold text-lg">{costCalculation.newPackage.name}</p>
                   </div>
-                  <div>
-                    <span className="text-gray-600">New End Date:</span>
-                    <p className="font-medium">{formatDate(costCalculation.newEndDate)}</p>
+                  <div className="space-y-1">
+                    <span className="text-gray-600 font-medium">New End Date:</span>
+                    <p className="font-semibold text-lg">{formatDate(costCalculation.newEndDate)}</p>
                   </div>
-                  <div>
-                    <span className="text-gray-600">Remaining Value:</span>
-                    <p className="font-medium text-blue-600">-{formatCurrency(costCalculation.remainingValue)}</p>
+                  {formData.prorated_calculation !== 'custom' && (
+                    <div className="space-y-1">
+                      <span className="text-gray-600 font-medium">Remaining Value:</span>
+                      <p className="font-semibold text-lg text-blue-600">-{formatCurrency(costCalculation.remainingValue)}</p>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <span className="text-gray-600 font-medium">
+                      {formData.prorated_calculation === 'custom' ? 'Total Amount:' : 'Additional Cost:'}
+                    </span>
+                    <p className="font-semibold text-xl text-green-600">{formatCurrency(costCalculation.additionalCost)}</p>
+                    {formData.prorated_calculation === 'custom' && currentMembership.amount_pending > 0 && !formData.ignore_previous_pending && (
+                      <p className="text-sm text-gray-500">
+                        (Custom: {formatCurrency(formData.custom_amount || 0)} + Pending: {formatCurrency(currentMembership.amount_pending || 0)})
+                      </p>
+                    )}
+                    {formData.prorated_calculation === 'custom' && formData.ignore_previous_pending && (
+                      <p className="text-sm text-gray-500">
+                        (Custom: {formatCurrency(formData.custom_amount || 0)} - Previous pending ignored)
+                      </p>
+                    )}
                   </div>
-                  <div>
-                    <span className="text-gray-600">Additional Cost:</span>
-                    <p className="font-medium text-green-600">{formatCurrency(costCalculation.additionalCost)}</p>
-                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                  <p className="text-base text-blue-800 font-medium">
+                    <strong>Note:</strong> Payment will be handled separately using the "Add Payment" feature after package change.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -352,14 +449,14 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
           {/* Payment Details */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">Payment & Notes</CardTitle>
+              <CardTitle className="text-lg">Payment & Notes</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="payment_method">Payment Method</Label>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="payment_method" className="text-base font-medium">Payment Method</Label>
                   <Select value={formData.payment_method} onValueChange={(value) => handleInputChange('payment_method', value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 text-base">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -371,56 +468,53 @@ export const MembershipUpgradeDialog: React.FC<MembershipUpgradeDialogProps> = (
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="additional_payment">Additional Payment</Label>
-                  <Input
-                    id="additional_payment"
-                    type="number"
-                    step="0.01"
-                    value={formData.additional_payment}
-                    onChange={(e) => handleInputChange('additional_payment', parseFloat(e.target.value) || 0)}
-                    readOnly
-                  />
-                </div>
+                {/* Additional Payment field hidden - will be handled via Add Payment */}
               </div>
 
-              <div>
-                <Label htmlFor="reason">Reason for Upgrade</Label>
+              <div className="space-y-2">
+                <Label htmlFor="reason" className="text-base font-medium">Reason for Package Change</Label>
                 <Input
                   id="reason"
                   value={formData.reason}
                   onChange={(e) => handleInputChange('reason', e.target.value)}
                   placeholder="e.g., Member requested better facilities"
+                  className="h-12 text-base"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="notes">Additional Notes</Label>
+              <div className="space-y-2">
+                <Label htmlFor="notes" className="text-base font-medium">Additional Notes</Label>
                 <Textarea
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder="Any additional notes about the upgrade"
-                  rows={2}
+                  placeholder="Any additional notes about the package change"
+                  rows={3}
+                  className="text-base"
                 />
               </div>
             </CardContent>
           </Card>
 
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={loading || !formData.new_package_id || availableUpgrades.length === 0}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {loading ? 'Processing...' : `Upgrade Membership`}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </form>
+        </div>
+
+        {/* Footer with action buttons */}
+        <div className="flex justify-end space-x-3 p-6 border-t bg-gray-50">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} size="lg">
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={loading || !formData.new_package_id || availableUpgrades.length === 0 || (formData.prorated_calculation === 'custom' && (!formData.custom_amount || formData.custom_amount <= 0))}
+            className="bg-green-600 hover:bg-green-700"
+            size="lg"
+            onClick={handleSubmit}
+          >
+            {loading ? 'Processing...' : `Change Package`}
+          </Button>
+        </div>
+      </DrawerContent>
+    </Drawer>
   )
 }

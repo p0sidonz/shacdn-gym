@@ -15,12 +15,15 @@ import {
   ArrowDown, 
   DollarSign,
   AlertTriangle,
-  CheckCircle2
+  CheckCircle2,
+  Package
 } from 'lucide-react'
 import { useMemberships } from '@/hooks/useMemberships'
 import { useMembers } from '@/hooks/useMembers'
 import { useAuth } from '@/context/AuthContext'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { MembershipUpgradeDialog } from './MembershipUpgradeDialog'
+import { MembershipDowngradeDialog } from './MembershipDowngradeDialog'
 
 interface MembershipActionsProps {
   member: any
@@ -36,6 +39,8 @@ export const MembershipActions: React.FC<MembershipActionsProps> = ({
   const { refreshMembers } = useMembers({ gym_id: gymId || undefined })
   const [loading, setLoading] = useState(false)
   const [action, setAction] = useState<string | null>(null)
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
+  const [showDowngradeDialog, setShowDowngradeDialog] = useState(false)
 
   const handleAction = async (actionType: string, data: any) => {
     if (!member.current_membership) return
@@ -267,6 +272,15 @@ export const MembershipActions: React.FC<MembershipActionsProps> = ({
     <div className="space-y-2">
       {!isFrozen && !isCancelled && (
         <>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full"
+            onClick={() => setShowUpgradeDialog(true)}
+          >
+            <Package className="w-4 h-4 mr-2" />
+            Change Package
+          </Button>
           <FreezeDialog />
           <ExtendDialog />
           <CancelDialog />
@@ -290,6 +304,34 @@ export const MembershipActions: React.FC<MembershipActionsProps> = ({
         <div className="text-center text-red-500 text-sm">
           Membership Cancelled
         </div>
+      )}
+
+      {/* Upgrade Dialog */}
+      {showUpgradeDialog && (
+        <MembershipUpgradeDialog
+          open={showUpgradeDialog}
+          onOpenChange={setShowUpgradeDialog}
+          member={member}
+          currentMembership={member.current_membership}
+          onUpgradeComplete={() => {
+            if (onMembershipUpdated) onMembershipUpdated()
+            setShowUpgradeDialog(false)
+          }}
+        />
+      )}
+
+      {/* Downgrade Dialog */}
+      {showDowngradeDialog && (
+        <MembershipDowngradeDialog
+          open={showDowngradeDialog}
+          onOpenChange={setShowDowngradeDialog}
+          member={member}
+          currentMembership={member.current_membership}
+          onDowngradeComplete={() => {
+            if (onMembershipUpdated) onMembershipUpdated()
+            setShowDowngradeDialog(false)
+          }}
+        />
       )}
     </div>
   )

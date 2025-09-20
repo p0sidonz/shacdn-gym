@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { DollarSign } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -422,27 +422,23 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
   console.log('AddMemberDialog rendering with open:', open, 'existingMember:', existingMember)
   
   return (
-    <Sheet open={open} onOpenChange={setOpen} >
-      <SheetTrigger asChild>
+    <Drawer open={open} onOpenChange={setOpen} >
+      <DrawerTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
           {existingMember ? 'Add Membership' : 'Add Member'}
         </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="w-[800px] sm:w-[900px] max-w-none overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>
+      </DrawerTrigger>
+      <DrawerContent className="h-[95vh] max-h-[95vh]">
+        <DrawerHeader>
+          <DrawerTitle>
             {existingMember ? 'Add New Membership' : 'Add New Member'}
-          </SheetTitle>
-          <SheetDescription>
-            {existingMember 
-              ? 'Add a new membership package for this existing member'
-              : 'Create a new member profile and membership'
-            }
-          </SheetDescription>
-        </SheetHeader>
+          </DrawerTitle>
+        </DrawerHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6 mt-6">
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full overflow-auto p-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
           <div className="text-sm text-gray-600 mb-4">
             {existingMember ? 
               `Adding new membership for ${existingMember.profile?.first_name} ${existingMember.profile?.last_name}` : 
@@ -1030,8 +1026,10 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
               {loading ? 'Adding...' : (existingMember ? 'Add Membership' : 'Add Member')}
             </Button>
           </div>
-        </form>
-      </SheetContent>
-    </Sheet>
+            </form>
+          </div>
+        </div>
+      </DrawerContent>
+    </Drawer>
   )
 }

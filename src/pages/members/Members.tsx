@@ -34,6 +34,7 @@ import { AddMemberDialog } from '@/components/members/AddMemberSheet'
 import { MemberDetailsDialog } from '@/components/members/MemberDetailsDialog'
 import { DetailedMemberProfile } from '@/components/members/DetailedMemberProfile'
 import { MemberQRGenerator } from '@/components/members/MemberQRGenerator'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 
 const Members = () => {
   const { gymId } = useAuth()
@@ -168,22 +169,12 @@ const Members = () => {
     }
   }
 
-  // Show detailed member profile if a member is selected
-  if (selectedMember) {
-    return (
-      <DetailedMemberProfile 
-        member={selectedMember} 
-        onMemberUpdated={() => {
-          refreshMembers()
-          setSelectedMember(null)
-        }}
-        onBack={() => setSelectedMember(null)}
-      />
-    )
-  }
+  // Handle drawer open/close
+  const isDrawerOpen = selectedMember !== null
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -542,7 +533,7 @@ const Members = () => {
                         <TableCell>
                           <div className="space-y-1">
                             <div className="text-sm font-medium text-green-600">
-                              {member.current_membership ? formatCurrency(member.current_membership.amount_paid) : 'N/A'}
+                              {member.payment_stats ? formatCurrency(member.payment_stats.total_paid) : (member.current_membership ? formatCurrency(member.current_membership.amount_paid) : 'N/A')}
                             </div>
                             {member.current_membership && member.current_membership.amount_pending > 0 && (
                               <div className="text-xs text-red-600 flex items-center">
@@ -734,7 +725,7 @@ const Members = () => {
                         <div className="flex justify-between items-center">
                           <div>
                             <p className="text-sm font-medium text-green-600">
-                              {member.current_membership ? formatCurrency(member.current_membership.amount_paid) : 'N/A'}
+                              {member.payment_stats ? formatCurrency(member.payment_stats.total_paid) : (member.current_membership ? formatCurrency(member.current_membership.amount_paid) : 'N/A')}
                             </p>
                             {member.current_membership && member.current_membership.amount_pending > 0 && (
                               <p className="text-xs text-red-600 flex items-center">
@@ -843,6 +834,39 @@ const Members = () => {
         </Card>
       </div>
     </div>
+
+    {/* Member Details Drawer */}
+    <Drawer open={isDrawerOpen} onOpenChange={(open) => {
+      if (!open) {
+        setSelectedMember(null)
+      }
+    }}>
+      <DrawerContent className="h-[95vh] max-h-[95vh]">
+        <DrawerHeader className="flex-shrink-0">
+          <DrawerTitle>
+            {selectedMember?.profile ? 
+              `${selectedMember.profile.first_name} ${selectedMember.profile.last_name}` : 
+              'Member Details'
+            }
+          </DrawerTitle>
+        </DrawerHeader>
+        <div className="flex-1 overflow-hidden">
+          {selectedMember && (
+            <div className="h-full overflow-auto">
+              <DetailedMemberProfile 
+                member={selectedMember} 
+                onMemberUpdated={() => {
+                  refreshMembers()
+                  setSelectedMember(null)
+                }}
+                onBack={() => setSelectedMember(null)}
+              />
+            </div>
+          )}
+        </div>
+      </DrawerContent>
+    </Drawer>
+    </>
   )
 }
 
