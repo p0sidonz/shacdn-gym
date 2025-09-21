@@ -1,54 +1,46 @@
-import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { 
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-
+} from '@/components/ui/dialog'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer'
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import {
-  UserPlus,
-  Search,
-  Filter,
-  Trash2,
+} from '@/components/ui/select'
+import { 
+  UserPlus, 
+  Search, 
+  Filter, 
+  Trash2, 
   Eye,
   Users,
   DollarSign,
@@ -56,1105 +48,307 @@ import {
   Dumbbell,
   Star,
   ChevronDown,
-  ChevronUp,
-  Phone,
-  Mail,
-  Award,
-  GraduationCap,
-  Clock,
-  MoreVertical,
-  X,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { formatCurrency } from "@/lib/utils";
-import { useGym } from "@/hooks/useGym";
-import type { Staff, StaffStatus } from "@/types";
-import { TrainerPTDashboard } from "@/components/trainers/TrainerPTDashboard";
+  ChevronUp
+} from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
+import { useGym } from '@/hooks/useGym'
+import type { Staff, StaffStatus } from '@/types'
+import { TrainerPTDashboard } from '@/components/trainers/TrainerPTDashboard'
 
 export default function TrainersManagement() {
-  const { gym, staff, fetchStaff, createStaff, updateStaff, loading } =
-    useGym();
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StaffStatus | "all">("all");
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showAddDrawer, setShowAddDrawer] = useState(false);
-  const [selectedTrainer, setSelectedTrainer] = useState<Staff | null>(null);
-  const [showViewDialog, setShowViewDialog] = useState(false);
-  const [showViewDrawer, setShowViewDrawer] = useState(false);
-  const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [expandedTrainers, setExpandedTrainers] = useState<Set<string>>(
-    new Set(),
-  );
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Check if mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  const { gym, staff, fetchStaff, createStaff, updateStaff, loading } = useGym()
+  
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StaffStatus | 'all'>('all')
+  const [showAddDrawer, setShowAddDrawer] = useState(false)
+  const [selectedTrainer, setSelectedTrainer] = useState<Staff | null>(null)
+  const [showViewDialog, setShowViewDialog] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [expandedTrainers, setExpandedTrainers] = useState<Set<string>>(new Set())
 
   // Toggle trainer expansion
   const toggleTrainerExpansion = (trainerId: string) => {
-    setExpandedTrainers((prev) => {
-      const newSet = new Set(prev);
+    setExpandedTrainers(prev => {
+      const newSet = new Set(prev)
       if (newSet.has(trainerId)) {
-        newSet.delete(trainerId);
+        newSet.delete(trainerId)
       } else {
-        newSet.add(trainerId);
+        newSet.add(trainerId)
       }
-      return newSet;
-    });
-  };
+      return newSet
+    })
+  }
 
   // Filter only trainers
-  const trainers = staff.filter((member) => member.role === "trainer");
+  const trainers = staff.filter(member => member.role === 'trainer')
 
   // Add Trainer Form State
   const [addTrainerForm, setAddTrainerForm] = useState({
-    email: "",
-    password: "",
-    firstName: "",
-    lastName: "",
-    phone: "",
-    employeeId: "",
-    salaryAmount: "",
-    salaryType: "fixed",
-    baseCommissionRate: "",
-    hireDate: new Date().toISOString().split("T")[0],
-    probationEndDate: "",
-    contractEndDate: "",
-    specializations: "",
-    maxClients: "",
-    hourlyRate: "",
-    overtimeRate: "",
-    experienceYears: "",
-    languages: "",
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    employeeId: '',
+    salaryAmount: '',
+    salaryType: 'fixed',
+    baseCommissionRate: '',
+    hireDate: new Date().toISOString().split('T')[0],
+    probationEndDate: '',
+    contractEndDate: '',
+    specializations: '',
+    maxClients: '',
+    hourlyRate: '',
+    overtimeRate: '',
+    experienceYears: '',
+    languages: '',
     workSchedule: {
-      monday: { start: "09:00", end: "17:00", enabled: true },
-      tuesday: { start: "09:00", end: "17:00", enabled: true },
-      wednesday: { start: "09:00", end: "17:00", enabled: true },
-      thursday: { start: "09:00", end: "17:00", enabled: true },
-      friday: { start: "09:00", end: "17:00", enabled: true },
-      saturday: { start: "09:00", end: "13:00", enabled: false },
-      sunday: { start: "09:00", end: "13:00", enabled: false },
+      monday: { start: '09:00', end: '17:00', enabled: true },
+      tuesday: { start: '09:00', end: '17:00', enabled: true },
+      wednesday: { start: '09:00', end: '17:00', enabled: true },
+      thursday: { start: '09:00', end: '17:00', enabled: true },
+      friday: { start: '09:00', end: '17:00', enabled: true },
+      saturday: { start: '09:00', end: '13:00', enabled: false },
+      sunday: { start: '09:00', end: '13:00', enabled: false }
     },
-    certifications: [] as Array<{ name: string; issuer: string; date: string }>,
-    education: [] as Array<{
-      degree: string;
-      institution: string;
-      year: string;
-    }>,
+    certifications: [] as Array<{name: string, issuer: string, date: string}>,
+    education: [] as Array<{degree: string, institution: string, year: string}>,
     bankAccountDetails: {
-      accountNumber: "",
-      bankName: "",
-      ifsc: "",
-      accountHolderName: "",
+      accountNumber: '',
+      bankName: '',
+      ifsc: '',
+      accountHolderName: ''
     },
     taxDetails: {
-      pan: "",
-      aadhar: "",
-      address: "",
+      pan: '',
+      aadhar: '',
+      address: ''
     },
-    notes: "",
-  });
+    notes: ''
+  })
 
   // Dynamic form states for arrays
-  const [newCertification, setNewCertification] = useState({
-    name: "",
-    issuer: "",
-    date: "",
-  });
-  const [newEducation, setNewEducation] = useState({
-    degree: "",
-    institution: "",
-    year: "",
-  });
-  const [submitLoading, setSubmitLoading] = useState(false);
+  const [newCertification, setNewCertification] = useState({name: '', issuer: '', date: ''})
+  const [newEducation, setNewEducation] = useState({degree: '', institution: '', year: ''})
+
+  const [submitLoading, setSubmitLoading] = useState(false)
 
   useEffect(() => {
     if (gym?.id) {
-      fetchStaff();
+      fetchStaff()
     }
-  }, [gym?.id, fetchStaff]);
+  }, [])
 
-  const filteredTrainers = trainers.filter((trainer) => {
-    const matchesSearch =
-      trainer.profile?.first_name
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      trainer.profile?.last_name
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+  const filteredTrainers = trainers.filter(trainer => {
+    const matchesSearch = 
+      trainer.profile?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trainer.profile?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       trainer.employee_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trainer.profile?.phone?.includes(searchTerm);
+      trainer.profile?.phone?.includes(searchTerm)
 
-    const matchesStatus =
-      statusFilter === "all" || trainer.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || trainer.status === statusFilter
 
-    return matchesSearch && matchesStatus;
-  });
+    return matchesSearch && matchesStatus
+  })
 
   // Helper functions for managing arrays
   const addCertification = () => {
-    if (
-      newCertification.name &&
-      newCertification.issuer &&
-      newCertification.date
-    ) {
-      setAddTrainerForm((prev) => ({
+    if (newCertification.name && newCertification.issuer && newCertification.date) {
+      setAddTrainerForm(prev => ({
         ...prev,
-        certifications: [...prev.certifications, newCertification],
-      }));
-      setNewCertification({ name: "", issuer: "", date: "" });
+        certifications: [...prev.certifications, newCertification]
+      }))
+      setNewCertification({name: '', issuer: '', date: ''})
     }
-  };
+  }
 
   const removeCertification = (index: number) => {
-    setAddTrainerForm((prev) => ({
+    setAddTrainerForm(prev => ({
       ...prev,
-      certifications: prev.certifications.filter((_, i) => i !== index),
-    }));
-  };
+      certifications: prev.certifications.filter((_, i) => i !== index)
+    }))
+  }
 
   const addEducation = () => {
     if (newEducation.degree && newEducation.institution && newEducation.year) {
-      setAddTrainerForm((prev) => ({
+      setAddTrainerForm(prev => ({
         ...prev,
-        education: [...prev.education, newEducation],
-      }));
-      setNewEducation({ degree: "", institution: "", year: "" });
+        education: [...prev.education, newEducation]
+      }))
+      setNewEducation({degree: '', institution: '', year: ''})
     }
-  };
+  }
 
   const removeEducation = (index: number) => {
-    setAddTrainerForm((prev) => ({
+    setAddTrainerForm(prev => ({
       ...prev,
-      education: prev.education.filter((_, i) => i !== index),
-    }));
-  };
+      education: prev.education.filter((_, i) => i !== index)
+    }))
+  }
 
-  const updateWorkSchedule = (
-    day: string,
-    field: string,
-    value: string | boolean,
-  ) => {
-    setAddTrainerForm((prev) => ({
+  const updateWorkSchedule = (day: string, field: string, value: any) => {
+    setAddTrainerForm(prev => ({
       ...prev,
       workSchedule: {
         ...prev.workSchedule,
         [day]: {
           ...prev.workSchedule[day as keyof typeof prev.workSchedule],
-          [field]: value,
-        },
-      },
-    }));
-  };
-
-  const resetForm = () => {
-    setAddTrainerForm({
-      email: "",
-      password: "",
-      firstName: "",
-      lastName: "",
-      phone: "",
-      employeeId: "",
-      salaryAmount: "",
-      salaryType: "fixed",
-      baseCommissionRate: "",
-      hireDate: new Date().toISOString().split("T")[0],
-      probationEndDate: "",
-      contractEndDate: "",
-      specializations: "",
-      maxClients: "",
-      hourlyRate: "",
-      overtimeRate: "",
-      experienceYears: "",
-      languages: "",
-      workSchedule: {
-        monday: { start: "09:00", end: "17:00", enabled: true },
-        tuesday: { start: "09:00", end: "17:00", enabled: true },
-        wednesday: { start: "09:00", end: "17:00", enabled: true },
-        thursday: { start: "09:00", end: "17:00", enabled: true },
-        friday: { start: "09:00", end: "17:00", enabled: true },
-        saturday: { start: "09:00", end: "13:00", enabled: false },
-        sunday: { start: "09:00", end: "13:00", enabled: false },
-      },
-      certifications: [],
-      education: [],
-      bankAccountDetails: {
-        accountNumber: "",
-        bankName: "",
-        ifsc: "",
-        accountHolderName: "",
-      },
-      taxDetails: {
-        pan: "",
-        aadhar: "",
-        address: "",
-      },
-      notes: "",
-    });
-    setNewCertification({ name: "", issuer: "", date: "" });
-    setNewEducation({ degree: "", institution: "", year: "" });
-  };
+          [field]: value
+        }
+      }
+    }))
+  }
 
   const handleAddTrainer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!gym?.id) return;
+    e.preventDefault()
+    if (!gym?.id) return
 
     try {
-      setSubmitLoading(true);
-
+      setSubmitLoading(true)
+      
       const result = await createStaff({
         email: addTrainerForm.email,
         password: addTrainerForm.password,
         firstName: addTrainerForm.firstName,
         lastName: addTrainerForm.lastName,
         phone: addTrainerForm.phone,
-        role: "trainer", // Always trainer
+        role: 'trainer', // Always trainer
         employeeId: addTrainerForm.employeeId,
         salaryAmount: parseFloat(addTrainerForm.salaryAmount),
         salaryType: addTrainerForm.salaryType,
-        baseCommissionRate: addTrainerForm.baseCommissionRate
-          ? parseFloat(addTrainerForm.baseCommissionRate)
-          : 0,
+        baseCommissionRate: addTrainerForm.baseCommissionRate ? parseFloat(addTrainerForm.baseCommissionRate) : 0,
         hireDate: addTrainerForm.hireDate,
         probationEndDate: addTrainerForm.probationEndDate || undefined,
         contractEndDate: addTrainerForm.contractEndDate || undefined,
-        specializations: addTrainerForm.specializations
-          .split(",")
-          .map((s) => s.trim())
-          .filter((s) => s),
-        maxClients: addTrainerForm.maxClients
-          ? parseInt(addTrainerForm.maxClients)
-          : undefined,
-        hourlyRate: addTrainerForm.hourlyRate
-          ? parseFloat(addTrainerForm.hourlyRate)
-          : undefined,
-        overtimeRate: addTrainerForm.overtimeRate
-          ? parseFloat(addTrainerForm.overtimeRate)
-          : undefined,
-        experienceYears: addTrainerForm.experienceYears
-          ? parseInt(addTrainerForm.experienceYears)
-          : 0,
-        languages: addTrainerForm.languages
-          .split(",")
-          .map((s) => s.trim())
-          .filter((s) => s),
+        specializations: addTrainerForm.specializations.split(',').map(s => s.trim()).filter(s => s),
+        maxClients: addTrainerForm.maxClients ? parseInt(addTrainerForm.maxClients) : undefined,
+        hourlyRate: addTrainerForm.hourlyRate ? parseFloat(addTrainerForm.hourlyRate) : undefined,
+        overtimeRate: addTrainerForm.overtimeRate ? parseFloat(addTrainerForm.overtimeRate) : undefined,
+        experienceYears: addTrainerForm.experienceYears ? parseInt(addTrainerForm.experienceYears) : 0,
+        languages: addTrainerForm.languages.split(',').map(s => s.trim()).filter(s => s),
         workSchedule: addTrainerForm.workSchedule,
         certifications: addTrainerForm.certifications,
         education: addTrainerForm.education,
         bankAccountDetails: addTrainerForm.bankAccountDetails,
         taxDetails: addTrainerForm.taxDetails,
-        notes: addTrainerForm.notes || undefined,
-      });
+        notes: addTrainerForm.notes || undefined
+      })
 
       if (result.error) {
-        throw new Error(result.error);
+        throw new Error(result.error)
       }
 
-      resetForm();
-      setShowAddDialog(false);
-      setShowAddDrawer(false);
-
-      alert(`Trainer account created successfully!
+      // Reset form
+      setAddTrainerForm({
+        email: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        phone: '',
+        employeeId: '',
+        salaryAmount: '',
+        salaryType: 'fixed',
+        baseCommissionRate: '',
+        hireDate: new Date().toISOString().split('T')[0],
+        probationEndDate: '',
+        contractEndDate: '',
+        specializations: '',
+        maxClients: '',
+        hourlyRate: '',
+        overtimeRate: '',
+        experienceYears: '',
+        languages: '',
+        workSchedule: {
+          monday: { start: '09:00', end: '17:00', enabled: true },
+          tuesday: { start: '09:00', end: '17:00', enabled: true },
+          wednesday: { start: '09:00', end: '17:00', enabled: true },
+          thursday: { start: '09:00', end: '17:00', enabled: true },
+          friday: { start: '09:00', end: '17:00', enabled: true },
+          saturday: { start: '09:00', end: '13:00', enabled: false },
+          sunday: { start: '09:00', end: '13:00', enabled: false }
+        },
+        certifications: [],
+        education: [],
+        bankAccountDetails: {
+          accountNumber: '',
+          bankName: '',
+          ifsc: '',
+          accountHolderName: ''
+        },
+        taxDetails: {
+          pan: '',
+          aadhar: '',
+          address: ''
+        },
+        notes: ''
+      })
+      setNewCertification({name: '', issuer: '', date: ''})
+      setNewEducation({degree: '', institution: '', year: ''})
+      
+      setShowAddDrawer(false)
+      alert(`Trainer account created successfully! 
 
 ${addTrainerForm.firstName} can now log in immediately with:
 • Email: ${addTrainerForm.email}
 • Password: ${addTrainerForm.password}
 • Role: Trainer
 
-The account is active and they can access their trainer dashboard right away!`);
+The account is active and they can access their trainer dashboard right away!`)
     } catch (error) {
-      console.error("❌ Error adding trainer:", error);
-
-      let errorMessage = "Failed to add trainer. Please try again.";
-
+      console.error('❌ Error adding trainer:', error)
+      
+      let errorMessage = 'Failed to add trainer. Please try again.'
+      
       if (error instanceof Error) {
-        if (error.message.includes("CORS")) {
-          errorMessage =
-            "CORS Error: Please check your Supabase configuration.";
-        } else if (error.message.includes("403")) {
-          errorMessage = "Permission Error: Please check RLS policies.";
-        } else if (error.message.includes("duplicate")) {
-          errorMessage =
-            "Email already exists. Please use a different email address.";
+        if (error.message.includes('CORS')) {
+          errorMessage = 'CORS Error: Please check your Supabase configuration.'
+        } else if (error.message.includes('403')) {
+          errorMessage = 'Permission Error: Please check RLS policies.'
+        } else if (error.message.includes('duplicate')) {
+          errorMessage = 'Email already exists. Please use a different email address.'
         } else {
-          errorMessage = `Error: ${error.message}`;
+          errorMessage = `Error: ${error.message}`
         }
       }
-
-      alert(errorMessage);
+      
+      alert(errorMessage)
     } finally {
-      setSubmitLoading(false);
+      setSubmitLoading(false)
     }
-  };
+  }
 
-  const handleUpdateTrainerStatus = async (
-    trainerId: string,
-    status: StaffStatus,
-  ) => {
+  const handleUpdateTrainerStatus = async (trainerId: string, status: StaffStatus) => {
     try {
-      const result = await updateStaff(trainerId, { status });
+      const result = await updateStaff(trainerId, { status })
       if (result.error) {
-        throw new Error(result.error);
+        throw new Error(result.error)
       }
-      alert("Trainer status updated successfully!");
+      alert('Trainer status updated successfully!')
     } catch (error) {
-      console.error("Error updating trainer status:", error);
-      alert("Failed to update trainer status.");
+      console.error('Error updating trainer status:', error)
+      alert('Failed to update trainer status.')
     }
-  };
+  }
 
   const handleViewTrainer = (trainer: Staff) => {
-    setSelectedTrainer(trainer);
-    if (isMobile) {
-      setShowViewDrawer(true);
-    } else {
-      setShowViewDialog(true);
-    }
-  };
+    setSelectedTrainer(trainer)
+    setShowViewDialog(true)
+  }
 
   const getStatusColor = (status: StaffStatus) => {
     switch (status) {
-      case "active":
-        return "default";
-      case "inactive":
-        return "secondary";
-      case "terminated":
-        return "destructive";
-      case "on_leave":
-        return "outline";
-      case "probation":
-        return "secondary";
-      default:
-        return "secondary";
+      case 'active': return 'default'
+      case 'inactive': return 'secondary'
+      case 'terminated': return 'destructive'
+      case 'on_leave': return 'outline'
+      case 'probation': return 'secondary'
+      default: return 'secondary'
     }
-  };
+  }
 
   const getStatusLabel = (status: StaffStatus) => {
-    return status.replace("_", " ");
-  };
-
-  // Add Trainer Form Component
-  const AddTrainerForm = () => (
-    <form onSubmit={handleAddTrainer} className="space-y-6">
-      <Tabs defaultValue="personal" className="w-full">
-        <TabsList
-          className={`grid w-full ${isMobile ? "grid-cols-2" : "grid-cols-4"}`}
-        >
-          <TabsTrigger value="personal" className="text-xs">
-            Personal
-          </TabsTrigger>
-          <TabsTrigger value="job" className="text-xs">
-            Job
-          </TabsTrigger>
-          {!isMobile && (
-            <TabsTrigger value="professional" className="text-xs">
-              Professional
-            </TabsTrigger>
-          )}
-          {!isMobile && (
-            <TabsTrigger value="additional" className="text-xs">
-              Additional
-            </TabsTrigger>
-          )}
-          {isMobile && (
-            <TabsTrigger value="more" className="text-xs">
-              More
-            </TabsTrigger>
-          )}
-        </TabsList>
-
-        {/* Personal Information Tab */}
-        <TabsContent value="personal" className="space-y-4 mt-4">
-          <div
-            className={`grid ${isMobile ? "grid-cols-1" : "grid-cols-2"} gap-4`}
-          >
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name *</Label>
-              <Input
-                id="firstName"
-                value={addTrainerForm.firstName}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    firstName: e.target.value,
-                  }))
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name *</Label>
-              <Input
-                id="lastName"
-                value={addTrainerForm.lastName}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    lastName: e.target.value,
-                  }))
-                }
-                required
-              />
-            </div>
-          </div>
-
-          <div
-            className={`grid ${isMobile ? "grid-cols-1" : "grid-cols-2"} gap-4`}
-          >
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={addTrainerForm.email}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    email: e.target.value,
-                  }))
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number *</Label>
-              <Input
-                id="phone"
-                value={addTrainerForm.phone}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    phone: e.target.value,
-                  }))
-                }
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password *</Label>
-            <Input
-              id="password"
-              type="password"
-              value={addTrainerForm.password}
-              onChange={(e) =>
-                setAddTrainerForm((prev) => ({
-                  ...prev,
-                  password: e.target.value,
-                }))
-              }
-              required
-              placeholder="Minimum 6 characters"
-            />
-          </div>
-        </TabsContent>
-
-        {/* Job Details Tab */}
-        <TabsContent value="job" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label htmlFor="employeeId">Employee ID *</Label>
-            <Input
-              id="employeeId"
-              value={addTrainerForm.employeeId}
-              onChange={(e) =>
-                setAddTrainerForm((prev) => ({
-                  ...prev,
-                  employeeId: e.target.value,
-                }))
-              }
-              placeholder="e.g., TRN001"
-              required
-            />
-          </div>
-
-          <div
-            className={`grid ${isMobile ? "grid-cols-1" : "grid-cols-3"} gap-4`}
-          >
-            <div className="space-y-2">
-              <Label htmlFor="salaryAmount">Salary Amount *</Label>
-              <Input
-                id="salaryAmount"
-                type="number"
-                value={addTrainerForm.salaryAmount}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    salaryAmount: e.target.value,
-                  }))
-                }
-                placeholder="25000"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="salaryType">Salary Type</Label>
-              <Select
-                onValueChange={(value) =>
-                  setAddTrainerForm((prev) => ({ ...prev, salaryType: value }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Fixed" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fixed">Fixed Monthly</SelectItem>
-                  <SelectItem value="hourly">Hourly</SelectItem>
-                  <SelectItem value="commission">Commission</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="baseCommissionRate">Commission Rate (%)</Label>
-              <Input
-                id="baseCommissionRate"
-                type="number"
-                step="0.01"
-                value={addTrainerForm.baseCommissionRate}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    baseCommissionRate: e.target.value,
-                  }))
-                }
-                placeholder="5.0"
-              />
-            </div>
-          </div>
-
-          <div
-            className={`grid ${isMobile ? "grid-cols-1" : "grid-cols-3"} gap-4`}
-          >
-            <div className="space-y-2">
-              <Label htmlFor="hireDate">Hire Date *</Label>
-              <Input
-                id="hireDate"
-                type="date"
-                value={addTrainerForm.hireDate}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    hireDate: e.target.value,
-                  }))
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="probationEndDate">Probation End Date</Label>
-              <Input
-                id="probationEndDate"
-                type="date"
-                value={addTrainerForm.probationEndDate}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    probationEndDate: e.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contractEndDate">Contract End Date</Label>
-              <Input
-                id="contractEndDate"
-                type="date"
-                value={addTrainerForm.contractEndDate}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    contractEndDate: e.target.value,
-                  }))
-                }
-              />
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Professional Details Tab (Mobile: Combined with More) */}
-        <TabsContent
-          value={isMobile ? "more" : "professional"}
-          className="space-y-4 mt-4"
-        >
-          <div className="space-y-2">
-            <Label htmlFor="specializations">Specializations *</Label>
-            <Textarea
-              id="specializations"
-              value={addTrainerForm.specializations}
-              onChange={(e) =>
-                setAddTrainerForm((prev) => ({
-                  ...prev,
-                  specializations: e.target.value,
-                }))
-              }
-              placeholder="Weight Training, Cardio, Yoga, CrossFit (comma separated)"
-              rows={2}
-              required
-            />
-          </div>
-
-          <div
-            className={`grid ${isMobile ? "grid-cols-1" : "grid-cols-2"} gap-4`}
-          >
-            <div className="space-y-2">
-              <Label htmlFor="maxClients">Max Clients *</Label>
-              <Input
-                id="maxClients"
-                type="number"
-                value={addTrainerForm.maxClients}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    maxClients: e.target.value,
-                  }))
-                }
-                placeholder="20"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="experienceYears">Experience (Years) *</Label>
-              <Input
-                id="experienceYears"
-                type="number"
-                value={addTrainerForm.experienceYears}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    experienceYears: e.target.value,
-                  }))
-                }
-                placeholder="5"
-                required
-              />
-            </div>
-          </div>
-
-          <div
-            className={`grid ${isMobile ? "grid-cols-1" : "grid-cols-2"} gap-4`}
-          >
-            <div className="space-y-2">
-              <Label htmlFor="hourlyRate">Hourly Rate *</Label>
-              <Input
-                id="hourlyRate"
-                type="number"
-                step="0.01"
-                value={addTrainerForm.hourlyRate}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    hourlyRate: e.target.value,
-                  }))
-                }
-                placeholder="500"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="overtimeRate">Overtime Rate</Label>
-              <Input
-                id="overtimeRate"
-                type="number"
-                step="0.01"
-                value={addTrainerForm.overtimeRate}
-                onChange={(e) =>
-                  setAddTrainerForm((prev) => ({
-                    ...prev,
-                    overtimeRate: e.target.value,
-                  }))
-                }
-                placeholder="750"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="languages">Languages</Label>
-            <Input
-              id="languages"
-              value={addTrainerForm.languages}
-              onChange={(e) =>
-                setAddTrainerForm((prev) => ({
-                  ...prev,
-                  languages: e.target.value,
-                }))
-              }
-              placeholder="English, Hindi, Spanish (comma separated)"
-            />
-          </div>
-
-          {/* Certifications */}
-          <div className="space-y-3">
-            <Label>Certifications</Label>
-            <div className="space-y-2">
-              {addTrainerForm.certifications.map((cert, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 p-2 border rounded"
-                >
-                  <div className="flex-1">
-                    <span className="font-medium text-sm">{cert.name}</span>
-                    <div className="text-xs text-muted-foreground">
-                      {cert.issuer} ({cert.date})
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeCertification(index)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-              <div
-                className={`grid ${isMobile ? "grid-cols-1" : "grid-cols-3"} gap-2`}
-              >
-                <Input
-                  placeholder="Certification Name"
-                  value={newCertification.name}
-                  onChange={(e) =>
-                    setNewCertification((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }))
-                  }
-                />
-                <Input
-                  placeholder="Issuing Organization"
-                  value={newCertification.issuer}
-                  onChange={(e) =>
-                    setNewCertification((prev) => ({
-                      ...prev,
-                      issuer: e.target.value,
-                    }))
-                  }
-                />
-                <div className="flex gap-1">
-                  <Input
-                    type="date"
-                    value={newCertification.date}
-                    onChange={(e) =>
-                      setNewCertification((prev) => ({
-                        ...prev,
-                        date: e.target.value,
-                      }))
-                    }
-                  />
-                  <Button type="button" onClick={addCertification} size="sm">
-                    <UserPlus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {!isMobile && (
-            <>
-              {/* Education */}
-              <div className="space-y-3">
-                <Label>Education</Label>
-                <div className="space-y-2">
-                  {addTrainerForm.education.map((edu, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 p-2 border rounded"
-                    >
-                      <div className="flex-1">
-                        <span className="font-medium">{edu.degree}</span> -{" "}
-                        {edu.institution} ({edu.year})
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeEducation(index)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  <div className="grid grid-cols-3 gap-2">
-                    <Input
-                      placeholder="Degree/Qualification"
-                      value={newEducation.degree}
-                      onChange={(e) =>
-                        setNewEducation((prev) => ({
-                          ...prev,
-                          degree: e.target.value,
-                        }))
-                      }
-                    />
-                    <Input
-                      placeholder="Institution Name"
-                      value={newEducation.institution}
-                      onChange={(e) =>
-                        setNewEducation((prev) => ({
-                          ...prev,
-                          institution: e.target.value,
-                        }))
-                      }
-                    />
-                    <div className="flex gap-1">
-                      <Input
-                        placeholder="Year"
-                        value={newEducation.year}
-                        onChange={(e) =>
-                          setNewEducation((prev) => ({
-                            ...prev,
-                            year: e.target.value,
-                          }))
-                        }
-                      />
-                      <Button type="button" onClick={addEducation} size="sm">
-                        <UserPlus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={addTrainerForm.notes}
-              onChange={(e) =>
-                setAddTrainerForm((prev) => ({
-                  ...prev,
-                  notes: e.target.value,
-                }))
-              }
-              placeholder="Additional notes about the trainer..."
-              rows={3}
-            />
-          </div>
-        </TabsContent>
-
-        {/* Additional Details Tab (Desktop Only) */}
-        {!isMobile && (
-          <TabsContent value="additional" className="space-y-4 mt-4">
-            {/* Work Schedule */}
-            <div className="space-y-3">
-              <Label>Work Schedule</Label>
-              <div className="space-y-2">
-                {Object.entries(addTrainerForm.workSchedule).map(
-                  ([day, schedule]) => (
-                    <div
-                      key={day}
-                      className="flex items-center gap-4 p-3 border rounded"
-                    >
-                      <div className="w-20">
-                        <Label className="capitalize">{day}</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={schedule.enabled}
-                          onChange={(e) =>
-                            updateWorkSchedule(day, "enabled", e.target.checked)
-                          }
-                          className="rounded"
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          Working
-                        </span>
-                      </div>
-                      {schedule.enabled && (
-                        <>
-                          <div className="flex items-center gap-2">
-                            <Label className="text-sm">Start:</Label>
-                            <Input
-                              type="time"
-                              value={schedule.start}
-                              onChange={(e) =>
-                                updateWorkSchedule(day, "start", e.target.value)
-                              }
-                              className="w-24"
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Label className="text-sm">End:</Label>
-                            <Input
-                              type="time"
-                              value={schedule.end}
-                              onChange={(e) =>
-                                updateWorkSchedule(day, "end", e.target.value)
-                              }
-                              className="w-24"
-                            />
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ),
-                )}
-              </div>
-            </div>
-          </TabsContent>
-        )}
-      </Tabs>
-
-      <div className="flex justify-end space-x-2 pt-4 border-t">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setShowAddDialog(false);
-            setShowAddDrawer(false);
-          }}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" disabled={submitLoading}>
-          {submitLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Adding...
-            </>
-          ) : (
-            "Add Trainer"
-          )}
-        </Button>
-      </div>
-    </form>
-  );
-
-  // Mobile Trainer Card Component
-  const MobileTrainerCard = ({ trainer }: { trainer: Staff }) => (
-    <Card className="mb-4 bg-card">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <Dumbbell className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">
-                {trainer.profile?.first_name} {trainer.profile?.last_name}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                <Badge variant="outline" className="text-xs">
-                  {trainer.employee_id}
-                </Badge>
-              </p>
-            </div>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-popover">
-              <DropdownMenuItem onClick={() => handleViewTrainer(trainer)}>
-                <Eye className="w-4 h-4 mr-2" />
-                View Details
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleUpdateTrainerStatus(trainer.id, "active")}
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Mark Active
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  handleUpdateTrainerStatus(trainer.id, "inactive")
-                }
-              >
-                <X className="w-4 h-4 mr-2" />
-                Mark Inactive
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-3">
-          {/* Status and Contact */}
-          <div className="flex items-center justify-between">
-            <Badge variant={getStatusColor(trainer.status)}>
-              {getStatusLabel(trainer.status)}
-            </Badge>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Phone className="w-3 h-3" />
-              <span className="truncate">{trainer.profile?.phone}</span>
-            </div>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                {trainer.experience_years}
-              </div>
-              <div className="text-xs text-blue-600 dark:text-blue-400">
-                Years Exp
-              </div>
-            </div>
-            <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-              <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(trainer.hourly_rate || 0)}
-              </div>
-              <div className="text-xs text-green-600 dark:text-green-400">
-                Per Hour
-              </div>
-            </div>
-          </div>
-
-          {/* Specializations */}
-          {trainer.specializations?.length > 0 && (
-            <div>
-              <div className="text-sm font-medium mb-2">Specializations</div>
-              <div className="flex flex-wrap gap-1">
-                {trainer.specializations.slice(0, 2).map((spec, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {spec}
-                  </Badge>
-                ))}
-                {trainer.specializations.length > 2 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{trainer.specializations.length - 2} more
-                  </Badge>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={() => handleViewTrainer(trainer)}
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              View Details
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+    return status.replace('_', ' ')
+  }
 
   if (loading) {
     return (
@@ -1162,649 +356,953 @@ The account is active and they can access their trainer dashboard right away!`);
         <Loader2 className="h-8 w-8 animate-spin" />
         <span className="ml-2 text-lg">Loading trainers...</span>
       </div>
-    );
+    )
   }
 
   return (
-    <div className={`${isMobile ? "p-4" : "p-6"} space-y-6`}>
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div>
-          <h1
-            className={`${isMobile ? "text-2xl" : "text-3xl"} font-bold flex items-center gap-2`}
-          >
-            <Dumbbell
-              className={`${isMobile ? "h-6 w-6" : "h-8 w-8"} text-primary`}
-            />
-            {isMobile ? "Trainers" : "Trainers Management"}
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+            <Dumbbell className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+            Trainers Management
           </h1>
-          <p className={`text-muted-foreground ${isMobile ? "text-sm" : ""}`}>
-            {isMobile
-              ? "Manage gym trainers"
-              : "Manage your gym trainers, their specializations, and client assignments"}
+          <p className="text-muted-foreground text-sm md:text-base">
+            Manage your gym trainers, their specializations, and client assignments
           </p>
         </div>
-
-        {/* Add Trainer Button */}
-        <Dialog
-          open={isMobile ? showAddDrawer : showAddDialog}
-          onOpenChange={isMobile ? setShowAddDrawer : setShowAddDialog}
-        >
-          <DialogTrigger asChild>
-            <Button size={isMobile ? "sm" : "default"}>
+        
+        <Drawer open={showAddDrawer} onOpenChange={setShowAddDrawer}>
+          <DrawerTrigger asChild>
+            <Button className="w-full md:w-auto">
               <UserPlus className="h-4 w-4 mr-2" />
-              {isMobile ? "Add" : "Add Trainer"}
+              Add Trainer
             </Button>
-          </DialogTrigger>
-          <DialogContent
-            className={`${isMobile ? "w-[95vw] max-w-[95vw] h-[90vh] max-h-[90vh] p-0" : "max-w-4xl max-h-[90vh]"} overflow-y-auto`}
-          >
-            <DialogHeader className={isMobile ? "p-4 pb-0" : ""}>
-              <DialogTitle>
-                {isMobile ? "Add Trainer" : "Add New Trainer"}
-              </DialogTitle>
-              <DialogDescription>
-                {isMobile
-                  ? "Create new trainer account"
-                  : "Create a new trainer account with specialized training features"}
-              </DialogDescription>
-            </DialogHeader>
-            <div
-              className={`${isMobile ? "px-4 pb-4" : ""} overflow-y-auto ${isMobile ? "max-h-[calc(90vh-120px)]" : ""}`}
-            >
-              <AddTrainerForm />
+          </DrawerTrigger>
+          <DrawerContent className="h-[95vh]">
+            <DrawerHeader className="border-b">
+              <DrawerTitle>Add New Trainer</DrawerTitle>
+              <DrawerDescription>
+                Create a new trainer account with specialized training features
+              </DrawerDescription>
+            </DrawerHeader>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              <form
+                onSubmit={handleAddTrainer}
+                className="space-y-6"
+                id="add-trainer-form"
+              >
+                <Tabs defaultValue="personal" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+                    <TabsTrigger
+                      value="personal"
+                      className="text-xs md:text-sm"
+                    >
+                      Personal
+                    </TabsTrigger>
+                    <TabsTrigger value="job" className="text-xs md:text-sm">
+                      Job
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="professional"
+                      className="text-xs md:text-sm"
+                    >
+                      Professional
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="additional"
+                      className="text-xs md:text-sm"
+                    >
+                      Additional
+                    </TabsTrigger>
+                  </TabsList>
+
+                {/* Personal Information Tab */}
+                <TabsContent value="personal" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name *</Label>
+                      <Input
+                        id="firstName"
+                        value={addTrainerForm.firstName}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, firstName: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Input
+                        id="lastName"
+                        value={addTrainerForm.lastName}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, lastName: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={addTrainerForm.email}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, email: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number *</Label>
+                      <Input
+                        id="phone"
+                        value={addTrainerForm.phone}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, phone: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={addTrainerForm.password}
+                      onChange={(e) => setAddTrainerForm(prev => ({ ...prev, password: e.target.value }))}
+                      required
+                      placeholder="Minimum 6 characters"
+                    />
+                  </div>
+                </TabsContent>
+
+                {/* Job Details Tab */}
+                <TabsContent value="job" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="employeeId">Employee ID *</Label>
+                    <Input
+                      id="employeeId"
+                      value={addTrainerForm.employeeId}
+                      onChange={(e) => setAddTrainerForm(prev => ({ ...prev, employeeId: e.target.value }))}
+                      placeholder="e.g., TRN001"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="salaryAmount">Salary Amount *</Label>
+                      <Input
+                        id="salaryAmount"
+                        type="number"
+                        value={addTrainerForm.salaryAmount}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, salaryAmount: e.target.value }))}
+                        placeholder="25000"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="salaryType">Salary Type</Label>
+                      <Select onValueChange={(value) => setAddTrainerForm(prev => ({ ...prev, salaryType: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Fixed" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fixed">Fixed Monthly</SelectItem>
+                          <SelectItem value="hourly">Hourly</SelectItem>
+                          <SelectItem value="commission">Commission</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="baseCommissionRate">Commission Rate (%)</Label>
+                      <Input
+                        id="baseCommissionRate"
+                        type="number"
+                        step="0.01"
+                        value={addTrainerForm.baseCommissionRate}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, baseCommissionRate: e.target.value }))}
+                        placeholder="5.0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="hireDate">Hire Date *</Label>
+                      <Input
+                        id="hireDate"
+                        type="date"
+                        value={addTrainerForm.hireDate}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, hireDate: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="probationEndDate">Probation End Date</Label>
+                      <Input
+                        id="probationEndDate"
+                        type="date"
+                        value={addTrainerForm.probationEndDate}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, probationEndDate: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contractEndDate">Contract End Date</Label>
+                      <Input
+                        id="contractEndDate"
+                        type="date"
+                        value={addTrainerForm.contractEndDate}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, contractEndDate: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Professional Details Tab */}
+                <TabsContent value="professional" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="specializations">Specializations *</Label>
+                    <Textarea
+                      id="specializations"
+                      value={addTrainerForm.specializations}
+                      onChange={(e) => setAddTrainerForm(prev => ({ ...prev, specializations: e.target.value }))}
+                      placeholder="Weight Training, Cardio, Yoga, CrossFit (comma separated)"
+                      rows={2}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="maxClients">Max Clients *</Label>
+                      <Input
+                        id="maxClients"
+                        type="number"
+                        value={addTrainerForm.maxClients}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, maxClients: e.target.value }))}
+                        placeholder="20"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="experienceYears">Experience (Years) *</Label>
+                      <Input
+                        id="experienceYears"
+                        type="number"
+                        value={addTrainerForm.experienceYears}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, experienceYears: e.target.value }))}
+                        placeholder="5"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="hourlyRate">Hourly Rate *</Label>
+                      <Input
+                        id="hourlyRate"
+                        type="number"
+                        step="0.01"
+                        value={addTrainerForm.hourlyRate}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, hourlyRate: e.target.value }))}
+                        placeholder="500"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="overtimeRate">Overtime Rate</Label>
+                      <Input
+                        id="overtimeRate"
+                        type="number"
+                        step="0.01"
+                        value={addTrainerForm.overtimeRate}
+                        onChange={(e) => setAddTrainerForm(prev => ({ ...prev, overtimeRate: e.target.value }))}
+                        placeholder="750"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="languages">Languages</Label>
+                    <Input
+                      id="languages"
+                      value={addTrainerForm.languages}
+                      onChange={(e) => setAddTrainerForm(prev => ({ ...prev, languages: e.target.value }))}
+                      placeholder="English, Hindi, Spanish (comma separated)"
+                    />
+                  </div>
+
+                  {/* Certifications */}
+                  <div className="space-y-3">
+                    <Label>Certifications</Label>
+                    <div className="space-y-2">
+                      {addTrainerForm.certifications.map((cert, index) => (
+                        <div key={index} className="flex items-center gap-2 p-2 border rounded">
+                          <div className="flex-1">
+                            <span className="font-medium">{cert.name}</span> - {cert.issuer} ({cert.date})
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeCertification(index)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      <div className="grid grid-cols-3 gap-2">
+                        <Input
+                          placeholder="Certification Name"
+                          value={newCertification.name}
+                          onChange={(e) => setNewCertification(prev => ({ ...prev, name: e.target.value }))}
+                        />
+                        <Input
+                          placeholder="Issuing Organization"
+                          value={newCertification.issuer}
+                          onChange={(e) => setNewCertification(prev => ({ ...prev, issuer: e.target.value }))}
+                        />
+                        <div className="flex gap-1">
+                          <Input
+                            type="date"
+                            value={newCertification.date}
+                            onChange={(e) => setNewCertification(prev => ({ ...prev, date: e.target.value }))}
+                          />
+                          <Button type="button" onClick={addCertification} size="sm">
+                            <UserPlus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Education */}
+                  <div className="space-y-3">
+                    <Label>Education</Label>
+                    <div className="space-y-2">
+                      {addTrainerForm.education.map((edu, index) => (
+                        <div key={index} className="flex items-center gap-2 p-2 border rounded">
+                          <div className="flex-1">
+                            <span className="font-medium">{edu.degree}</span> - {edu.institution} ({edu.year})
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeEducation(index)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      <div className="grid grid-cols-3 gap-2">
+                        <Input
+                          placeholder="Degree/Qualification"
+                          value={newEducation.degree}
+                          onChange={(e) => setNewEducation(prev => ({ ...prev, degree: e.target.value }))}
+                        />
+                        <Input
+                          placeholder="Institution Name"
+                          value={newEducation.institution}
+                          onChange={(e) => setNewEducation(prev => ({ ...prev, institution: e.target.value }))}
+                        />
+                        <div className="flex gap-1">
+                          <Input
+                            placeholder="Year"
+                            value={newEducation.year}
+                            onChange={(e) => setNewEducation(prev => ({ ...prev, year: e.target.value }))}
+                          />
+                          <Button type="button" onClick={addEducation} size="sm">
+                            <UserPlus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Additional Details Tab */}
+                <TabsContent value="additional" className="space-y-4">
+                  {/* Work Schedule */}
+                  <div className="space-y-3">
+                    <Label>Work Schedule</Label>
+                    <div className="space-y-2">
+                      {Object.entries(addTrainerForm.workSchedule).map(([day, schedule]) => (
+                        <div key={day} className="flex items-center gap-4 p-3 border rounded">
+                          <div className="w-20">
+                            <Label className="capitalize">{day}</Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={schedule.enabled}
+                              onChange={(e) => updateWorkSchedule(day, 'enabled', e.target.checked)}
+                              className="rounded"
+                            />
+                            <span className="text-sm text-muted-foreground">Working</span>
+                          </div>
+                          {schedule.enabled && (
+                            <>
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm">Start:</Label>
+                                <Input
+                                  type="time"
+                                  value={schedule.start}
+                                  onChange={(e) => updateWorkSchedule(day, 'start', e.target.value)}
+                                  className="w-24"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm">End:</Label>
+                                <Input
+                                  type="time"
+                                  value={schedule.end}
+                                  onChange={(e) => updateWorkSchedule(day, 'end', e.target.value)}
+                                  className="w-24"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={addTrainerForm.notes}
+                      onChange={(e) => setAddTrainerForm(prev => ({ ...prev, notes: e.target.value }))}
+                      placeholder="Additional notes about the trainer..."
+                      rows={3}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setShowAddDrawer(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={submitLoading}>
+                    {submitLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      'Add Trainer'
+                    )}
+                  </Button>
+                </div>
+              </form>
             </div>
-          </DialogContent>
-        </Dialog>
+          </DrawerContent>
+        </Drawer>
       </div>
 
       {/* Stats Cards */}
-      <div
-        className={`grid ${isMobile ? "grid-cols-2" : "grid-cols-1 md:grid-cols-4"} gap-${isMobile ? "4" : "6"}`}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle
-              className={`${isMobile ? "text-xs" : "text-sm"} font-medium`}
-            >
-              Total Trainers
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Trainers</CardTitle>
             <Dumbbell className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`${isMobile ? "text-xl" : "text-2xl"} font-bold`}>
-              {trainers.length}
-            </div>
+            <div className="text-2xl font-bold">{trainers.length}</div>
             <p className="text-xs text-muted-foreground">
-              {trainers.filter((t) => t.status === "active").length} active
+              {trainers.filter(t => t.status === 'active').length} active
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle
-              className={`${isMobile ? "text-xs" : "text-sm"} font-medium`}
-            >
-              Total Clients
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`${isMobile ? "text-xl" : "text-2xl"} font-bold`}>
+            <div className="text-2xl font-bold">
               {trainers.reduce((sum, t) => sum + (t.max_clients || 0), 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Max capacity</p>
+            <p className="text-xs text-muted-foreground">
+              Max capacity across all trainers
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle
-              className={`${isMobile ? "text-xs" : "text-sm"} font-medium`}
-            >
-              Avg Rate
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Avg Hourly Rate</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`${isMobile ? "text-xl" : "text-2xl"} font-bold`}>
+            <div className="text-2xl font-bold">
               {formatCurrency(
-                trainers.length > 0
-                  ? trainers.reduce((sum, t) => sum + (t.hourly_rate || 0), 0) /
-                      trainers.length
-                  : 0,
+                trainers.length > 0 
+                  ? trainers.reduce((sum, t) => sum + (t.hourly_rate || 0), 0) / trainers.length 
+                  : 0
               )}
             </div>
-            <p className="text-xs text-muted-foreground">Per hour</p>
+            <p className="text-xs text-muted-foreground">
+              Average rate per hour
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle
-              className={`${isMobile ? "text-xs" : "text-sm"} font-medium`}
-            >
-              Avg Experience
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Avg Experience</CardTitle>
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`${isMobile ? "text-xl" : "text-2xl"} font-bold`}>
-              {trainers.length > 0
-                ? Math.round(
-                    trainers.reduce(
-                      (sum, t) => sum + (t.experience_years || 0),
-                      0,
-                    ) / trainers.length,
-                  )
-                : 0}{" "}
-              years
+            <div className="text-2xl font-bold">
+              {trainers.length > 0 
+                ? Math.round(trainers.reduce((sum, t) => sum + (t.experience_years || 0), 0) / trainers.length)
+                : 0
+              } years
             </div>
-            <p className="text-xs text-muted-foreground">Average experience</p>
+            <p className="text-xs text-muted-foreground">
+              Average experience
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Mobile Search and Filter */}
-      {isMobile && (
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search trainers..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <Sheet open={showFiltersDrawer} onOpenChange={setShowFiltersDrawer}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filters
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-[350px] bg-background">
-                <SheetHeader>
-                  <SheetTitle>Filter Trainers</SheetTitle>
-                  <SheetDescription>
-                    Filter trainers by status and other criteria
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="mt-6 space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium">Status</Label>
-                    <Select
-                      value={statusFilter}
-                      onValueChange={(value) =>
-                        setStatusFilter(value as StaffStatus | "all")
-                      }
-                    >
-                      <SelectTrigger className="w-full mt-2">
-                        <SelectValue placeholder="All Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                        <SelectItem value="on_leave">On Leave</SelectItem>
-                        <SelectItem value="terminated">Terminated</SelectItem>
-                        <SelectItem value="probation">Probation</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="pt-4">
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setShowFiltersDrawer(false)}
-                    >
-                      Apply Filters
-                    </Button>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-      )}
-
       {/* Main Content Tabs */}
       <Tabs defaultValue="directory" className="w-full">
-        <TabsList
-          className={`grid w-full grid-cols-2 ${isMobile ? "h-10" : ""}`}
-        >
-          <TabsTrigger value="directory" className={isMobile ? "text-sm" : ""}>
-            {isMobile ? "Directory" : "Trainers Directory"}
-          </TabsTrigger>
-          <TabsTrigger
-            value="pt-overview"
-            className={isMobile ? "text-sm" : ""}
-          >
-            PT Overview
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="directory">Trainers Directory</TabsTrigger>
+          <TabsTrigger value="pt-overview">PT Overview</TabsTrigger>
         </TabsList>
 
         <TabsContent value="directory" className="space-y-6">
-          {isMobile ? (
-            /* Mobile Cards View */
-            <div className="space-y-4">
-              {filteredTrainers.map((trainer) => (
-                <MobileTrainerCard key={trainer.id} trainer={trainer} />
-              ))}
-
-              {filteredTrainers.length === 0 && (
-                <Card>
-                  <CardContent className="p-6 text-center">
-                    <Dumbbell className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-gray-500">
-                      {searchTerm || statusFilter !== "all"
-                        ? "No trainers match your search criteria"
-                        : "No trainers found"}
-                    </p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      {searchTerm || statusFilter !== "all"
-                        ? "Try adjusting your search or filters"
-                        : "Add your first trainer to get started"}
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+          {/* Filters and Search */}
+          <Card>
+        <CardHeader>
+          <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+            <CardTitle>Trainers Directory</CardTitle>
+            <div className="flex flex-col space-y-2 md:flex-row md:items-center md:space-x-2 md:space-y-0">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search trainers..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 w-full md:w-64"
+                />
+              </div>
+              
+              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StaffStatus | 'all')}>
+                <SelectTrigger className="w-full md:w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="on_leave">On Leave</SelectItem>
+                  <SelectItem value="terminated">Terminated</SelectItem>
+                  <SelectItem value="probation">Probation</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            /* Desktop Table View */
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Trainers Directory</CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search trainers..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8 w-64"
-                      />
-                    </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Employee ID</TableHead>
+                  <TableHead>Specializations</TableHead>
+                  <TableHead>Experience</TableHead>
+                  <TableHead>Rate</TableHead>
+                  <TableHead>Max Clients</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTrainers.map((trainer) => (
+                  <TableRow key={trainer.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">
+                          {trainer.profile?.first_name} {trainer.profile?.last_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {trainer.profile?.phone}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{trainer.employee_id}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {trainer.specializations?.slice(0, 2).map((spec, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {spec}
+                          </Badge>
+                        ))}
+                        {trainer.specializations && trainer.specializations.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{trainer.specializations.length - 2} more
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 text-yellow-500" />
+                        {trainer.experience_years} years
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{formatCurrency(trainer.hourly_rate || 0)}/hr</p>
+                        <p className="text-xs text-muted-foreground">
+                          {trainer.salary_type} • {formatCurrency(trainer.salary_amount)}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3 text-blue-500" />
+                        {trainer.max_clients || 0}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusColor(trainer.status)}>
+                        {getStatusLabel(trainer.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewTrainer(trainer)}
+                          title="View Details"
+                        >
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Select onValueChange={(value) => handleUpdateTrainerStatus(trainer.id, value as StaffStatus)}>
+                          <SelectTrigger className="w-32">
+                            <Filter className="h-3 w-3 mr-1" />
+                            <span>Status</span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="active">Mark Active</SelectItem>
+                            <SelectItem value="inactive">Mark Inactive</SelectItem>
+                            <SelectItem value="on_leave">Mark On Leave</SelectItem>
+                            <SelectItem value="terminated">Mark Terminated</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
-                    <Select
-                      value={statusFilter}
-                      onValueChange={(value) =>
-                        setStatusFilter(value as StaffStatus | "all")
-                      }
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {filteredTrainers.map((trainer) => (
+              <Card key={trainer.id} className="p-4">
+                <div className="space-y-3">
+                  {/* Header with Name and Status */}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="font-semibold text-lg">
+                        {trainer.profile?.first_name} {trainer.profile?.last_name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {trainer.profile?.phone}
+                      </p>
+                    </div>
+                    <Badge variant={getStatusColor(trainer.status)}>
+                      {getStatusLabel(trainer.status)}
+                    </Badge>
+                  </div>
+
+                  {/* Employee ID */}
+                  <div>
+                    <Badge variant="outline">{trainer.employee_id}</Badge>
+                  </div>
+
+                  {/* Specializations */}
+                  {trainer.specializations && trainer.specializations.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Specializations</p>
+                      <div className="flex flex-wrap gap-1">
+                        {trainer.specializations.slice(0, 3).map((spec, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {spec}
+                          </Badge>
+                        ))}
+                        {trainer.specializations.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{trainer.specializations.length - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 text-yellow-500" />
+                      <span className="text-sm">{trainer.experience_years} years exp</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm">{trainer.max_clients || 0} max clients</span>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-sm font-medium">{formatCurrency(trainer.hourly_rate || 0)}/hr</p>
+                      <p className="text-xs text-muted-foreground">
+                        {trainer.salary_type} • {formatCurrency(trainer.salary_amount)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center space-x-2 pt-2 border-t">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewTrainer(trainer)}
+                      className="flex-1"
                     >
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Status" />
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </Button>
+                    <Select onValueChange={(value) => handleUpdateTrainerStatus(trainer.id, value as StaffStatus)}>
+                      <SelectTrigger className="flex-1">
+                        <Filter className="h-4 w-4 mr-1" />
+                        <span>Status</span>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                        <SelectItem value="on_leave">On Leave</SelectItem>
-                        <SelectItem value="terminated">Terminated</SelectItem>
-                        <SelectItem value="probation">Probation</SelectItem>
+                        <SelectItem value="active">Mark Active</SelectItem>
+                        <SelectItem value="inactive">Mark Inactive</SelectItem>
+                        <SelectItem value="on_leave">Mark On Leave</SelectItem>
+                        <SelectItem value="terminated">Mark Terminated</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Employee ID</TableHead>
-                      <TableHead>Specializations</TableHead>
-                      <TableHead>Experience</TableHead>
-                      <TableHead>Rate</TableHead>
-                      <TableHead>Max Clients</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTrainers.map((trainer) => (
-                      <TableRow key={trainer.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">
-                              {trainer.profile?.first_name}{" "}
-                              {trainer.profile?.last_name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {trainer.profile?.phone}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{trainer.employee_id}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {trainer.specializations
-                              ?.slice(0, 2)
-                              .map((spec, index) => (
-                                <Badge
-                                  key={index}
-                                  variant="secondary"
-                                  className="text-xs"
-                                >
-                                  {spec}
-                                </Badge>
-                              ))}
-                            {trainer.specializations &&
-                              trainer.specializations.length > 2 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{trainer.specializations.length - 2} more
-                                </Badge>
-                              )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Star className="h-3 w-3 text-yellow-500" />
-                            {trainer.experience_years} years
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">
-                              {formatCurrency(trainer.hourly_rate || 0)}/hr
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {trainer.salary_type} •{" "}
-                              {formatCurrency(trainer.salary_amount)}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Users className="h-3 w-3 text-blue-500" />
-                            {trainer.max_clients || 0}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getStatusColor(trainer.status)}>
-                            {getStatusLabel(trainer.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewTrainer(trainer)}
-                              title="View Details"
-                            >
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                            <Select
-                              onValueChange={(value) =>
-                                handleUpdateTrainerStatus(
-                                  trainer.id,
-                                  value as StaffStatus,
-                                )
-                              }
-                            >
-                              <SelectTrigger className="w-32">
-                                <Filter className="h-3 w-3 mr-1" />
-                                <span>Status</span>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="active">
-                                  Mark Active
-                                </SelectItem>
-                                <SelectItem value="inactive">
-                                  Mark Inactive
-                                </SelectItem>
-                                <SelectItem value="on_leave">
-                                  Mark On Leave
-                                </SelectItem>
-                                <SelectItem value="terminated">
-                                  Mark Terminated
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                {filteredTrainers.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    {searchTerm || statusFilter !== "all"
-                      ? "No trainers match your search criteria"
-                      : "No trainers found. Add your first trainer to get started."}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              </Card>
+            ))}
+          </div>
+          
+          {filteredTrainers.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchTerm || statusFilter !== 'all' 
+                ? 'No trainers match your search criteria'
+                : 'No trainers found. Add your first trainer to get started.'
+              }
+            </div>
           )}
+        </CardContent>
+      </Card>
         </TabsContent>
 
         <TabsContent value="pt-overview" className="space-y-6">
+          {/* Debug Component */}
+          {/* <TrainerDebugger /> */}
+          
+          {/* Quick Add Trainer */}
+          {/* <TrainerQuickAdd /> */}
+          
+          {/* Quick Fix Component */}
+          {/* <PTPackageQuickFix onPackageFixed={() => setRefreshTrigger(prev => prev + 1)} /> */}
+          
           <div className="space-y-4">
-            {trainers
-              .filter((t) => t.status === "active")
-              .map((trainer) => {
-                const isExpanded = expandedTrainers.has(trainer.id);
-
-                return (
-                  <Card key={trainer.id} className="overflow-hidden">
-                    <CardHeader
-                      className="cursor-pointer hover:bg-gray-50 transition-colors"
-                      onClick={() => toggleTrainerExpansion(trainer.id)}
-                    >
-                      <CardTitle className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Dumbbell className="w-5 h-5 text-blue-600" />
-                          <span className={isMobile ? "text-base" : ""}>
-                            {trainer.profile?.first_name}{" "}
-                            {trainer.profile?.last_name}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className={isMobile ? "text-xs" : ""}
-                          >
-                            {trainer.employee_id}
-                          </Badge>
-                          <Badge
-                            variant="secondary"
-                            className={isMobile ? "text-xs" : ""}
-                          >
-                            {formatCurrency(trainer.hourly_rate || 0)}/hr
-                          </Badge>
+            {trainers.filter(t => t.status === 'active').map((trainer) => {
+              const isExpanded = expandedTrainers.has(trainer.id)
+              
+              return (
+                <Card key={trainer.id} className="overflow-hidden">
+                  <CardHeader 
+                    className="cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => toggleTrainerExpansion(trainer.id)}
+                  >
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Dumbbell className="w-5 h-5 text-blue-600" />
+                        <span>{trainer.profile?.first_name} {trainer.profile?.last_name}</span>
+                        <Badge variant="outline">{trainer.employee_id}</Badge>
+                        <Badge variant="secondary">
+                          {formatCurrency(trainer.hourly_rate || 0)}/hr
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          {trainer.experience_years} years exp
+                        </span>
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </div>
+                    </CardTitle>
+                    <CardDescription>
+                      {trainer.specializations?.join(', ')} • Max {trainer.max_clients || 0} clients
+                    </CardDescription>
+                  </CardHeader>
+                  
+                  {isExpanded && (
+                    <CardContent className="pt-0">
+                      <div className="space-y-6">
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="text-center p-3 bg-blue-50 rounded-lg">
+                            <div className="text-2xl font-bold text-blue-600">
+                              {trainer.max_clients || 0}
+                            </div>
+                            <div className="text-sm text-blue-600">Max Clients</div>
+                          </div>
+                          <div className="text-center p-3 bg-green-50 rounded-lg">
+                            <div className="text-2xl font-bold text-green-600">
+                              {trainer.experience_years}
+                            </div>
+                            <div className="text-sm text-green-600">Years Exp</div>
+                          </div>
+                          <div className="text-center p-3 bg-purple-50 rounded-lg">
+                            <div className="text-2xl font-bold text-purple-600">
+                              {trainer.specializations?.length || 0}
+                            </div>
+                            <div className="text-sm text-purple-600">Specializations</div>
+                          </div>
+                          <div className="text-center p-3 bg-orange-50 rounded-lg">
+                            <div className="text-2xl font-bold text-orange-600">
+                              {trainer.languages?.length || 0}
+                            </div>
+                            <div className="text-sm text-orange-600">Languages</div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">
-                            {trainer.experience_years} years exp
-                          </span>
-                          {isExpanded ? (
-                            <ChevronUp className="w-4 h-4" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" />
+
+                        {/* Specializations & Languages */}
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {trainer.specializations?.length > 0 && (
+                            <div>
+                              <h4 className="font-medium mb-2">Specializations</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {trainer.specializations.map((spec, index) => (
+                                  <Badge key={index} variant="outline">{spec}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {trainer.languages?.length > 0 && (
+                            <div>
+                              <h4 className="font-medium mb-2">Languages</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {trainer.languages.map((lang, index) => (
+                                  <Badge key={index} variant="secondary">{lang}</Badge>
+                                ))}
+                              </div>
+                            </div>
                           )}
                         </div>
-                      </CardTitle>
-                      <CardDescription>
-                        {trainer.specializations?.join(", ")} • Max{" "}
-                        {trainer.max_clients || 0} clients
-                      </CardDescription>
-                    </CardHeader>
 
-                    {isExpanded && (
-                      <CardContent className="pt-0">
-                        <div className="space-y-6">
-                          {/* Quick Stats */}
-                          <div
-                            className={`grid ${isMobile ? "grid-cols-2" : "grid-cols-2 md:grid-cols-4"} gap-3`}
-                          >
-                            <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                              <div
-                                className={`${isMobile ? "text-lg" : "text-2xl"} font-bold text-blue-600 dark:text-blue-400`}
-                              >
-                                {trainer.max_clients || 0}
-                              </div>
-                              <div className="text-xs text-blue-600 dark:text-blue-400">
-                                Max Clients
-                              </div>
-                            </div>
-                            <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                              <div
-                                className={`${isMobile ? "text-lg" : "text-2xl"} font-bold text-green-600 dark:text-green-400`}
-                              >
-                                {trainer.experience_years}
-                              </div>
-                              <div className="text-xs text-green-600 dark:text-green-400">
-                                Years Exp
-                              </div>
-                            </div>
-                            {!isMobile && (
-                              <>
-                                <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                                    {trainer.specializations?.length || 0}
-                                  </div>
-                                  <div className="text-xs text-purple-600 dark:text-purple-400">
-                                    Specializations
-                                  </div>
+                        {/* Certifications Preview */}
+                        {trainer.certifications && trainer.certifications.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Certifications</h4>
+                            <div className="space-y-1">
+                              {trainer.certifications.slice(0, 3).map((cert, index) => (
+                                <div key={index} className="text-sm text-muted-foreground">
+                                  {cert.name} • {cert.issuer}
                                 </div>
-                                <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
-                                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                                    {trainer.languages?.length || 0}
-                                  </div>
-                                  <div className="text-xs text-orange-600 dark:text-orange-400">
-                                    Languages
-                                  </div>
+                              ))}
+                              {trainer.certifications.length > 3 && (
+                                <div className="text-sm text-muted-foreground">
+                                  +{trainer.certifications.length - 3} more...
                                 </div>
-                              </>
-                            )}
-                          </div>
-
-                          {/* Specializations & Languages */}
-                          <div
-                            className={`grid ${isMobile ? "grid-cols-1" : "md:grid-cols-2"} gap-4`}
-                          >
-                            {trainer.specializations?.length > 0 && (
-                              <div>
-                                <h4 className="font-medium mb-2">
-                                  Specializations
-                                </h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {trainer.specializations.map(
-                                    (spec, index) => (
-                                      <Badge key={index} variant="outline">
-                                        {spec}
-                                      </Badge>
-                                    ),
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {trainer.languages?.length > 0 && (
-                              <div>
-                                <h4 className="font-medium mb-2">Languages</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {trainer.languages.map((lang, index) => (
-                                    <Badge key={index} variant="secondary">
-                                      {lang}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Certifications Preview */}
-                          {trainer.certifications &&
-                            trainer.certifications.length > 0 && (
-                              <div>
-                                <h4 className="font-medium mb-2">
-                                  Certifications
-                                </h4>
-                                <div className="space-y-1">
-                                  {trainer.certifications
-                                    .slice(0, isMobile ? 2 : 3)
-                                    .map((cert, index) => (
-                                      <div
-                                        key={index}
-                                        className="text-sm text-muted-foreground"
-                                      >
-                                        {cert.name} • {cert.issuer}
-                                      </div>
-                                    ))}
-                                  {trainer.certifications.length >
-                                    (isMobile ? 2 : 3) && (
-                                    <div className="text-sm text-muted-foreground">
-                                      +
-                                      {trainer.certifications.length -
-                                        (isMobile ? 2 : 3)}{" "}
-                                      more...
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                          {/* Education Preview */}
-                          {trainer.education &&
-                            trainer.education.length > 0 && (
-                              <div>
-                                <h4 className="font-medium mb-2">Education</h4>
-                                <div className="space-y-1">
-                                  {trainer.education
-                                    .slice(0, 2)
-                                    .map((edu, index) => (
-                                      <div
-                                        key={index}
-                                        className="text-sm text-muted-foreground"
-                                      >
-                                        {edu.degree} • {edu.institution}
-                                      </div>
-                                    ))}
-                                  {trainer.education.length > 2 && (
-                                    <div className="text-sm text-muted-foreground">
-                                      +{trainer.education.length - 2} more...
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                          {/* PT Dashboard */}
-                          <div className="border-t pt-4">
-                            <h4 className="font-medium mb-4">PT Dashboard</h4>
-                            <div className={`${isMobile ? "space-y-3" : ""}`}>
-                              <TrainerPTDashboard
-                                trainer={trainer}
-                                refreshTrigger={refreshTrigger}
-                                onSessionUpdated={() =>
-                                  setRefreshTrigger((prev) => prev + 1)
-                                }
-                              />
+                              )}
                             </div>
                           </div>
+                        )}
+
+                        {/* Education Preview */}
+                        {trainer.education && trainer.education.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Education</h4>
+                            <div className="space-y-1">
+                              {trainer.education.slice(0, 2).map((edu, index) => (
+                                <div key={index} className="text-sm text-muted-foreground">
+                                  {edu.degree} • {edu.institution}
+                                </div>
+                              ))}
+                              {trainer.education.length > 2 && (
+                                <div className="text-sm text-muted-foreground">
+                                  +{trainer.education.length - 2} more...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* PT Dashboard */}
+                        <div className="border-t pt-4">
+                          <h4 className="font-medium mb-4">PT Dashboard</h4>
+                          <TrainerPTDashboard 
+                            trainer={trainer} 
+                            refreshTrigger={refreshTrigger}
+                            onSessionUpdated={() => setRefreshTrigger(prev => prev + 1)}
+                          />
                         </div>
-                      </CardContent>
-                    )}
-                  </Card>
-                );
-              })}
 
-            {trainers.filter((t) => t.status === "active").length === 0 && (
+                        {/* Action Buttons */}
+                        {/* <div className="flex gap-2 pt-4 border-t">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTrainer(trainer)
+                              setShowViewDialog(true)
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Details
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTrainer(trainer)
+                              setShowViewDialog(true)
+                            }}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                          </Button>
+                        </div> */}
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              )
+            })}
+            
+            {trainers.filter(t => t.status === 'active').length === 0 && (
               <Card>
                 <CardContent className="p-6 text-center">
                   <p className="text-gray-500">No active trainers found</p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Add trainers to see their PT dashboard
-                  </p>
+                  <p className="text-sm text-gray-400 mt-1">Add trainers to see their PT dashboard</p>
                 </CardContent>
               </Card>
             )}
@@ -1812,18 +1310,16 @@ The account is active and they can access their trainer dashboard right away!`);
         </TabsContent>
       </Tabs>
 
-      {/* View Trainer Dialog (Desktop) */}
+      {/* View Trainer Dialog */}
       <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Trainer Details</DialogTitle>
             <DialogDescription>
-              View complete information for{" "}
-              {selectedTrainer?.profile?.first_name}{" "}
-              {selectedTrainer?.profile?.last_name}
+              View complete information for {selectedTrainer?.profile?.first_name} {selectedTrainer?.profile?.last_name}
             </DialogDescription>
           </DialogHeader>
-
+          
           {selectedTrainer && (
             <div className="space-y-6">
               {/* Personal Information */}
@@ -1833,30 +1329,19 @@ The account is active and they can access their trainer dashboard right away!`);
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">
-                      Name
-                    </Label>
-                    <p className="text-lg">
-                      {selectedTrainer.profile?.first_name}{" "}
-                      {selectedTrainer.profile?.last_name}
-                    </p>
+                    <Label className="text-sm font-medium text-muted-foreground">Name</Label>
+                    <p className="text-lg">{selectedTrainer.profile?.first_name} {selectedTrainer.profile?.last_name}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">
-                      Email
-                    </Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Email</Label>
                     <p>{selectedTrainer.profile?.user_id}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">
-                      Phone
-                    </Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
                     <p>{selectedTrainer.profile?.phone}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">
-                      Employee ID
-                    </Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Employee ID</Label>
                     <p>{selectedTrainer.employee_id}</p>
                   </div>
                 </CardContent>
@@ -1870,49 +1355,31 @@ The account is active and they can access their trainer dashboard right away!`);
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">
-                        Experience
-                      </Label>
-                      <p className="text-lg">
-                        {selectedTrainer.experience_years} years
-                      </p>
+                      <Label className="text-sm font-medium text-muted-foreground">Experience</Label>
+                      <p className="text-lg">{selectedTrainer.experience_years} years</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">
-                        Hourly Rate
-                      </Label>
-                      <p className="text-lg">
-                        {formatCurrency(selectedTrainer.hourly_rate || 0)}/hr
-                      </p>
+                      <Label className="text-sm font-medium text-muted-foreground">Hourly Rate</Label>
+                      <p className="text-lg">{formatCurrency(selectedTrainer.hourly_rate || 0)}/hr</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">
-                        Max Clients
-                      </Label>
-                      <p className="text-lg">
-                        {selectedTrainer.max_clients || 0}
-                      </p>
+                      <Label className="text-sm font-medium text-muted-foreground">Max Clients</Label>
+                      <p className="text-lg">{selectedTrainer.max_clients || 0}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">
-                        Status
-                      </Label>
+                      <Label className="text-sm font-medium text-muted-foreground">Status</Label>
                       <Badge variant={getStatusColor(selectedTrainer.status)}>
                         {getStatusLabel(selectedTrainer.status)}
                       </Badge>
                     </div>
                   </div>
-
+                  
                   {selectedTrainer.specializations?.length > 0 && (
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">
-                        Specializations
-                      </Label>
+                      <Label className="text-sm font-medium text-muted-foreground">Specializations</Label>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {selectedTrainer.specializations.map((spec, index) => (
-                          <Badge key={index} variant="outline">
-                            {spec}
-                          </Badge>
+                          <Badge key={index} variant="outline">{spec}</Badge>
                         ))}
                       </div>
                     </div>
@@ -1920,14 +1387,10 @@ The account is active and they can access their trainer dashboard right away!`);
 
                   {selectedTrainer.languages?.length > 0 && (
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">
-                        Languages
-                      </Label>
+                      <Label className="text-sm font-medium text-muted-foreground">Languages</Label>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {selectedTrainer.languages.map((lang, index) => (
-                          <Badge key={index} variant="secondary">
-                            {lang}
-                          </Badge>
+                          <Badge key={index} variant="secondary">{lang}</Badge>
                         ))}
                       </div>
                     </div>
@@ -1936,261 +1399,50 @@ The account is active and they can access their trainer dashboard right away!`);
               </Card>
 
               {/* Certifications */}
-              {selectedTrainer.certifications &&
-                selectedTrainer.certifications.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Certifications</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {selectedTrainer.certifications.map((cert, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center p-2 border rounded"
-                          >
-                            <div>
-                              <p className="font-medium">{cert.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {cert.issuer} • {cert.date}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-              {/* Education */}
-              {selectedTrainer.education &&
-                selectedTrainer.education.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Education</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {selectedTrainer.education.map((edu, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center p-2 border rounded"
-                          >
-                            <div>
-                              <p className="font-medium">{edu.degree}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {edu.institution} • {edu.year}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* View Trainer Dialog/Drawer (Mobile) */}
-      <Dialog open={showViewDrawer} onOpenChange={setShowViewDrawer}>
-        <DialogContent className="w-[95vw] max-w-[95vw] h-[90vh] max-h-[90vh] p-0 bg-background">
-          <DialogHeader className="p-4 pb-2 border-b">
-            <DialogTitle className="text-lg">
-              {selectedTrainer?.profile?.first_name}{" "}
-              {selectedTrainer?.profile?.last_name}
-            </DialogTitle>
-            <DialogDescription>
-              Employee ID: {selectedTrainer?.employee_id} •{" "}
-              {selectedTrainer?.experience_years} years experience
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedTrainer && (
-            <div className="px-4 pb-4 overflow-y-auto max-h-[calc(90vh-120px)] space-y-4">
-              {/* Contact Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    {selectedTrainer.profile?.phone}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    {selectedTrainer.profile?.user_id}
-                  </span>
-                </div>
-              </div>
-
-              {/* Status Badge */}
-              <div className="flex items-center justify-between">
-                <Badge
-                  variant={getStatusColor(selectedTrainer.status)}
-                  className="text-sm"
-                >
-                  {getStatusLabel(selectedTrainer.status)}
-                </Badge>
-                <div className="text-right">
-                  <div className="text-xl font-bold">
-                    {formatCurrency(selectedTrainer.hourly_rate || 0)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Per Hour</div>
-                </div>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                  <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                    {selectedTrainer.experience_years}
-                  </div>
-                  <div className="text-xs text-blue-600 dark:text-blue-400">
-                    Years
-                  </div>
-                </div>
-                <div className="text-center p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                  <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                    {selectedTrainer.max_clients || 0}
-                  </div>
-                  <div className="text-xs text-green-600 dark:text-green-400">
-                    Max Clients
-                  </div>
-                </div>
-                <div className="text-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                  <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                    {selectedTrainer.specializations?.length || 0}
-                  </div>
-                  <div className="text-xs text-purple-600 dark:text-purple-400">
-                    Skills
-                  </div>
-                </div>
-              </div>
-
-              {/* Specializations */}
-              {selectedTrainer.specializations?.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <Award className="w-4 h-4" />
-                    Specializations
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedTrainer.specializations.map((spec, index) => (
-                      <Badge key={index} variant="outline">
-                        {spec}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Languages */}
-              {selectedTrainer.languages?.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-3">Languages</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedTrainer.languages.map((lang, index) => (
-                      <Badge key={index} variant="secondary">
-                        {lang}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Certifications */}
-              {selectedTrainer.certifications &&
-                selectedTrainer.certifications.length > 0 && (
-                  <div>
-                    <h4 className="font-medium mb-3 flex items-center gap-2">
-                      <Award className="w-4 h-4" />
-                      Certifications
-                    </h4>
+              {selectedTrainer.certifications && selectedTrainer.certifications.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Certifications</CardTitle>
+                  </CardHeader>
+                  <CardContent>
                     <div className="space-y-2">
                       {selectedTrainer.certifications.map((cert, index) => (
-                        <div
-                          key={index}
-                          className="p-3 border rounded-lg bg-card"
-                        >
-                          <p className="font-medium text-sm">{cert.name}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {cert.issuer} • {cert.date}
-                          </p>
+                        <div key={index} className="flex justify-between items-center p-2 border rounded">
+                          <div>
+                            <p className="font-medium">{cert.name}</p>
+                            <p className="text-sm text-muted-foreground">{cert.issuer} • {cert.date}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Education */}
-              {selectedTrainer.education &&
-                selectedTrainer.education.length > 0 && (
-                  <div>
-                    <h4 className="font-medium mb-3 flex items-center gap-2">
-                      <GraduationCap className="w-4 h-4" />
-                      Education
-                    </h4>
+              {selectedTrainer.education && selectedTrainer.education.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Education</CardTitle>
+                  </CardHeader>
+                  <CardContent>
                     <div className="space-y-2">
                       {selectedTrainer.education.map((edu, index) => (
-                        <div
-                          key={index}
-                          className="p-3 border rounded-lg bg-card"
-                        >
-                          <p className="font-medium text-sm">{edu.degree}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {edu.institution} • {edu.year}
-                          </p>
+                        <div key={index} className="flex justify-between items-center p-2 border rounded">
+                          <div>
+                            <p className="font-medium">{edu.degree}</p>
+                            <p className="text-sm text-muted-foreground">{edu.institution} • {edu.year}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-
-              {/* Work Schedule */}
-              {selectedTrainer.work_schedule && (
-                <div>
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Work Schedule
-                  </h4>
-                  <div className="space-y-2">
-                    {Object.entries(selectedTrainer.work_schedule).map(
-                      ([day, schedule]) => {
-                        const workDay = schedule as {
-                          enabled: boolean;
-                          start: string;
-                          end: string;
-                        };
-                        return (
-                          <div
-                            key={day}
-                            className="flex items-center justify-between p-2 border rounded bg-card"
-                          >
-                            <span className="capitalize text-sm font-medium">
-                              {day}
-                            </span>
-                            {workDay.enabled ? (
-                              <span className="text-xs text-green-600 dark:text-green-400">
-                                {workDay.start} - {workDay.end}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">
-                                Off
-                              </span>
-                            )}
-                          </div>
-                        );
-                      },
-                    )}
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               )}
             </div>
           )}
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

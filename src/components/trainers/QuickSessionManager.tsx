@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -7,14 +7,8 @@ import {
   Calendar, 
   Clock, 
   CheckCircle, 
-  Plus,
   Zap,
-  Users,
-  Target,
-  AlertCircle,
-  Play,
-  Pause,
-  RotateCcw
+  Users
 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { supabase } from '@/lib/supabase'
@@ -30,7 +24,7 @@ export const QuickSessionManager: React.FC<QuickSessionManagerProps> = ({
   trainer,
   onSessionUpdated
 }) => {
-  const { gymId } = useAuth()
+  const { } = useAuth()
   const [loading, setLoading] = useState(false)
   const [assignedMembers, setAssignedMembers] = useState<any[]>([])
   const [todaySessions, setTodaySessions] = useState<any[]>([])
@@ -368,26 +362,26 @@ export const QuickSessionManager: React.FC<QuickSessionManagerProps> = ({
       </div>
 
       <Tabs defaultValue="quick" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="quick">Quick Actions</TabsTrigger>
-          <TabsTrigger value="today">Today's Sessions</TabsTrigger>
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-1 md:grid-cols-3">
+          <TabsTrigger value="quick" className="text-xs md:text-sm">Quick Actions</TabsTrigger>
+          <TabsTrigger value="today" className="text-xs md:text-sm">Today's Sessions</TabsTrigger>
+          <TabsTrigger value="upcoming" className="text-xs md:text-sm">Upcoming</TabsTrigger>
         </TabsList>
 
         {/* Quick Actions Tab */}
         <TabsContent value="quick" className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
             <h3 className="text-lg font-semibold">Quick Session Management</h3>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col space-y-2 md:flex-row md:items-center md:space-x-2 md:space-y-0">
               <Button
                 size="sm"
                 onClick={() => setShowBulkScheduler(true)}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 Bulk Schedule
               </Button>
-              <Badge className="bg-green-100 text-green-800">
+              <Badge className="bg-green-100 text-green-800 w-fit">
                 <Zap className="w-3 h-3 mr-1" />
                 One-Click Actions
               </Badge>
@@ -406,21 +400,21 @@ export const QuickSessionManager: React.FC<QuickSessionManagerProps> = ({
               {assignedMembers.map((member) => (
                 <Card key={member.id} className="hover:shadow-md transition-shadow">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
+                    <CardTitle className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0">
                       <div className="flex items-center gap-3">
                         <Users className="w-5 h-5 text-blue-600" />
                         <span>
                           {member.members?.profiles?.first_name} {member.members?.profiles?.last_name}
                         </span>
                       </div>
-                      <Badge className="bg-blue-100 text-blue-800">
+                      <Badge className="bg-blue-100 text-blue-800 w-fit">
                         {member.members?.member_id}
                       </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-gray-600">Package:</span>
                           <p className="font-medium">{member.memberships?.membership_packages?.name}</p>
@@ -474,7 +468,7 @@ export const QuickSessionManager: React.FC<QuickSessionManagerProps> = ({
 
         {/* Today's Sessions Tab */}
         <TabsContent value="today" className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0">
             <h3 className="text-lg font-semibold">Today's Sessions ({todaySessions.length})</h3>
             <div className="text-sm text-gray-500">
               {formatDate(new Date())}
@@ -493,8 +487,8 @@ export const QuickSessionManager: React.FC<QuickSessionManagerProps> = ({
               {todaySessions.map((session) => (
                 <Card key={session.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                    <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
+                      <div className="flex flex-col space-y-3 md:flex-row md:items-center md:gap-4 md:space-y-0">
                         <div>
                           <p className="font-medium">
                             {session.members?.profiles?.first_name} {session.members?.profiles?.last_name}
@@ -523,7 +517,7 @@ export const QuickSessionManager: React.FC<QuickSessionManagerProps> = ({
                         {!session.completed && (
                           <Button 
                             size="sm" 
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-green-600 hover:bg-green-700 w-full md:w-auto"
                             onClick={() => handleCompleteSession(session)}
                             disabled={loading}
                           >
@@ -542,7 +536,7 @@ export const QuickSessionManager: React.FC<QuickSessionManagerProps> = ({
 
         {/* Upcoming Sessions Tab */}
         <TabsContent value="upcoming" className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col space-y-2 md:flex-row md:items-center md:justify-between md:space-y-0">
             <h3 className="text-lg font-semibold">Upcoming Sessions (Next 3 Days)</h3>
             <div className="text-sm text-gray-500">
               {upcomingSessions.length} sessions
@@ -561,8 +555,8 @@ export const QuickSessionManager: React.FC<QuickSessionManagerProps> = ({
               {upcomingSessions.map((session) => (
                 <Card key={session.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                    <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
+                      <div className="flex flex-col space-y-3 md:flex-row md:items-center md:gap-4 md:space-y-0">
                         <div>
                           <p className="font-medium">
                             {session.members?.profiles?.first_name} {session.members?.profiles?.last_name}

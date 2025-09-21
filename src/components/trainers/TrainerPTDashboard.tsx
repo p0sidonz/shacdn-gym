@@ -291,13 +291,15 @@ export const TrainerPTDashboard: React.FC<TrainerPTDashboardProps> = ({
       </div> */}
 
       <Tabs defaultValue="quick" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="quick">Quick Manager</TabsTrigger>
-          <TabsTrigger value="clients">My Clients ({totalActiveClients})</TabsTrigger>
-          <TabsTrigger value="upcoming">Upcoming ({upcomingSessions.length})</TabsTrigger>
-          <TabsTrigger value="sessions">All Sessions</TabsTrigger>
-          <TabsTrigger value="earnings">Earnings</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-5 min-w-max">
+            <TabsTrigger value="quick" className="text-xs md:text-sm whitespace-nowrap">Quick Manager</TabsTrigger>
+            <TabsTrigger value="clients" className="text-xs md:text-sm whitespace-nowrap">My Clients ({totalActiveClients})</TabsTrigger>
+            <TabsTrigger value="upcoming" className="text-xs md:text-sm whitespace-nowrap">Upcoming ({upcomingSessions.length})</TabsTrigger>
+            <TabsTrigger value="sessions" className="text-xs md:text-sm whitespace-nowrap">All Sessions</TabsTrigger>
+            <TabsTrigger value="earnings" className="text-xs md:text-sm whitespace-nowrap">Earnings</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Quick Session Manager Tab */}
         <TabsContent value="quick" className="space-y-4">
